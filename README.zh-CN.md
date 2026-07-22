@@ -6,18 +6,11 @@
 
 > 状态：确定性的 CLI 和轻量 Skill 已支持 RSS、Atom、Feed 自动发现、OPML 导入、配置式列表页抓取、浏览器兜底，以及由调用方生成摘要。
 
-## 安装 CLI
+## 安装 Skill
 
 需要 Node.js 20.18.1 或更高版本。
 
-```bash
-npm install --global feed-reader-skill
-feed-reader --help
-```
-
-## 安装 Skill
-
-使用 Vercel Labs Skills CLI 交互式安装到任意受支持的 Agent：
+推荐使用 Vercel Labs Skills CLI 自动检测已安装的 Agent，再选择安装位置：
 
 ```bash
 npx skills add deanplus/feed-reader-skill
@@ -26,18 +19,28 @@ npx skills add deanplus/feed-reader-skill
 也可以全局安装到指定 Agent：
 
 ```bash
+# Codex
 npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a codex -y
+
+# Claude Code
 npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a claude-code -y
 ```
 
-该命令安装 Skill 指令。`PATH` 中没有 `feed-reader` 时，Skill 会通过 `npx feed-reader-skill@latest` 运行已发布的 CLI，因此不必另行全局安装 CLI。只有想查看仓库中有哪些 Skill、但不安装时，才添加 `--list`。
+不需要另行安装 CLI。`PATH` 中没有 `feed-reader` 时，Skill 会自动运行 `npx --yes feed-reader-skill@latest`。只有想查看仓库内容但不安装时，才使用 `--list`。
 
-Claude Code 用户也可以通过本仓库的 marketplace 安装：
+Claude Code 用户也可以把本仓库作为插件 marketplace 安装：
 
 ```text
 /plugin marketplace add deanplus/feed-reader-skill
 /plugin install feed-reader@feed-reader-skills
 /reload-plugins
+```
+
+## 可选：全局安装 CLI
+
+```bash
+npm install --global feed-reader-skill
+feed-reader --help
 ```
 
 ## 开发快速开始

@@ -6,38 +6,41 @@ Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin a
 
 > Status: the deterministic CLI and thin agent skill are implemented for RSS, Atom, feed discovery, OPML import, configured listing pages, browser fallback, and caller-generated summaries.
 
-## Install the CLI
+## Install the Skill
 
 Requires Node.js 20.18.1 or newer.
 
-```bash
-npm install --global feed-reader-skill
-feed-reader --help
-```
-
-## Install the Skill
-
-Install interactively to any agent supported by the Vercel Labs Skills CLI:
+Recommended: let the Vercel Labs Skills CLI detect your installed agents and choose where to install:
 
 ```bash
 npx skills add deanplus/feed-reader-skill
 ```
 
-Or install globally to a specific agent:
+Install globally to a specific agent:
 
 ```bash
+# Codex
 npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a codex -y
+
+# Claude Code
 npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a claude-code -y
 ```
 
-This installs the Skill instructions. When `feed-reader` is not on `PATH`, the Skill runs the published CLI through `npx feed-reader-skill@latest`, so a separate global CLI installation is optional. Add `--list` only to inspect the Skills found in the repository without installing them.
+No separate CLI installation is required. When `feed-reader` is not on `PATH`, the Skill runs `npx --yes feed-reader-skill@latest` automatically. Use `--list` only to inspect the repository without installing anything.
 
-Claude Code users can alternatively install from this repository's marketplace:
+Claude Code users can alternatively use this repository as a plugin marketplace:
 
 ```text
 /plugin marketplace add deanplus/feed-reader-skill
 /plugin install feed-reader@feed-reader-skills
 /reload-plugins
+```
+
+## Optional: install the CLI globally
+
+```bash
+npm install --global feed-reader-skill
+feed-reader --help
 ```
 
 ## Development quick start
