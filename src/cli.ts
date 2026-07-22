@@ -3,6 +3,7 @@ import { loadConfig } from "./config.ts";
 import { defaultDatabasePath, FeedDatabase } from "./database.ts";
 import type { FetchOptions } from "./feed.ts";
 import { discoverFeeds } from "./feed.ts";
+import { importOpmlFile } from "./opml.ts";
 import { syncFeeds } from "./sync.ts";
 
 interface CliIo {
@@ -17,6 +18,7 @@ export interface CliOptions extends FetchOptions {
 
 const usage = `Usage:
   feed-reader discover <url> [--json]
+  feed-reader feeds import <file> [--project <name>] [--category <name>] [--config <file>] [--json]
   feed-reader sync [--project <name>] [--config <file>] [--db <file>] [--json]
   feed-reader items [--project <name>] [--source <id>] [--category <name>] [--since <duration>] [--config <file>] [--db <file>] [--json]
   feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
@@ -92,6 +94,17 @@ export async function runCli(argv: string[], options: CliOptions = {}): Promise<
         : feeds.map((feed) => `${feed.type}\t${feed.url}\t${feed.title ?? ""}`).join("\n");
       print(io, values.json, { url: positionals[0], feeds }, plain);
       return feeds.length === 0 ? 1 : 0;
+    }
+    if (command === "feeds") {
+      if (positionals.length !== 2 || positionals[0] !== "import") {
+        throw new Error("feeds requires: feeds import <file>");
+      }
+      const result = await importOpmlFile(positionals[1] as string, values.config, {
+        project: values.project,
+        category: values.category,
+      });
+      print(io, values.json, result, `Imported ${result.imported} feeds; ${result.total} total in ${result.configPath}.`);
+      return 0;
     }
     if (positionals.length !== 0) {
       throw new Error(`${command} does not accept positional arguments`);

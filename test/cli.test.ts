@@ -82,6 +82,27 @@ test("runCli discovers feeds in JSON and plain modes", async () => {
   }
 });
 
+test("runCli imports OPML into JSON config", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-opml-"));
+  const opml = join(directory, "feeds.opml");
+  const config = join(directory, "feed-reader.json");
+  await writeFile(opml, '<opml><body><outline text="Tech"><outline text="Feed" xmlUrl="https://example.com/rss"/></outline></body></opml>');
+
+  const json = capture();
+  assert.equal(await runCli(["feeds", "import", opml, "--config", config, "--project", "demo", "--category", "Imported", "--json"], { io: json.io }), 0);
+  assert.deepEqual(JSON.parse(json.stdout), { configPath: config, project: "demo", imported: 1, total: 1 });
+
+  const plain = capture();
+  assert.equal(await runCli(["feeds", "import", opml, "--config", config], { io: plain.io }), 0);
+  assert.match(plain.stdout, /Imported 1 feeds; 1 total/);
+
+  for (const args of [["feeds"], ["feeds", "add", opml]]) {
+    const invalid = capture();
+    assert.equal(await runCli(args, { io: invalid.io }), 1);
+    assert.match(invalid.stderr, /feeds requires/);
+  }
+});
+
 test("runCli syncs, lists, filters, and reports status", async () => {
   const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-"));
   const config = join(directory, "feed-reader.json");

@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import type { FeedConfig, SourceConfig } from "./types.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -75,4 +76,12 @@ export async function loadConfig(path: string): Promise<FeedConfig> {
     throw new Error(`Cannot read config ${path}: ${message}`);
   }
   return parseConfig(value);
+}
+
+export async function saveConfig(path: string, config: FeedConfig): Promise<void> {
+  const value = parseConfig(config);
+  const temporary = `${path}.${process.pid}.tmp`;
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`);
+  await rename(temporary, path);
 }

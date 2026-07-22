@@ -9,9 +9,13 @@ test("the public API exports the core feed reader surface", () => {
     "discoverFeeds",
     "discoverFeedsFromHtml",
     "fetchFeed",
+    "importOpmlFile",
     "loadConfig",
+    "mergeFeedConfig",
     "parseConfig",
     "parseFeed",
+    "parseOpml",
+    "saveConfig",
     "syncFeeds",
   ]);
 });

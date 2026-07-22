@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mkdtemp } from "node:fs/promises";
 import test from "node:test";
-import { loadConfig, parseConfig } from "../src/config.ts";
+import { loadConfig, parseConfig, saveConfig } from "../src/config.ts";
 
 test("parseConfig normalizes valid sources and optional project", () => {
   assert.deepEqual(parseConfig({
@@ -71,4 +71,15 @@ test("loadConfig reads valid JSON and contextualizes file errors", async () => {
   assert.deepEqual(await loadConfig(valid), { sources: [] });
   await assert.rejects(loadConfig(invalid), /Cannot read config.*JSON/);
   await assert.rejects(loadConfig(join(directory, "missing.json")), /Cannot read config.*ENOENT/);
+});
+
+test("saveConfig validates and atomically writes nested config paths", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "feed-reader-save-config-"));
+  const path = join(directory, "nested", "feed-reader.json");
+  await saveConfig(path, { project: "demo", sources: [] });
+  assert.deepEqual(await loadConfig(path), { project: "demo", sources: [] });
+  await assert.rejects(
+    saveConfig(path, { sources: [{ id: "", url: "https://example.com", type: "rss", categories: [] }] }),
+    /must be a non-empty string/,
+  );
 });

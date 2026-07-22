@@ -1,6 +1,6 @@
 # Feed Reader Design
 
-This document records the agreed first-version scope. The core RSS/Atom loop and feed discovery described below are implemented; imports, selector-based websites, browser ingestion, and skill packaging remain planned.
+This document records the agreed first-version scope. The core RSS/Atom loop, feed discovery, and OPML import described below are implemented; selector-based websites, browser ingestion, and skill packaging remain planned.
 
 ## 1. Product boundary
 
@@ -70,11 +70,11 @@ The skill should not ask the user for a missing project or category. It may add 
 
 ## 4. Configuration and imports
 
-The first version imports OPML and JSON. CSV and remote account synchronization are out of scope.
+The first version imports OPML into the native JSON configuration format. CSV, a second JSON import format, and remote account synchronization are out of scope.
 
 Resolve configuration from an explicit `--config <file>` and then `feed-reader.json` in the current directory. `feeds import` creates or merges that file unless another path is supplied.
 
-Planned configuration shape:
+Configuration shape after selector support is added:
 
 ```json
 {
@@ -116,7 +116,7 @@ feed-reader items ingest --source <id> [--project <name>] [--input <file>] [--db
 feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
 ```
 
-`discover`, `sync`, `items`, and `status` are implemented. `feeds import` and `items ingest` remain planned.
+`discover`, `feeds import` for OPML, `sync`, `items`, and `status` are implemented. `items ingest` remains planned.
 
 `items ingest` accepts normalized items extracted by an agent browser, reading stdin when `--input` is absent. It lets those items use the same deduplication state as directly fetched items.
 
@@ -172,7 +172,7 @@ The package does not depend on an AI model or API key.
 
 ## 9. Runtime and dependencies
 
-- Support Node.js 22 and newer maintained releases.
+- Support Node.js 20.18.1 and newer maintained releases supported by the runtime dependencies.
 - Use TypeScript.
 - Use `better-sqlite3` rather than requiring the newer built-in SQLite API.
 - Prefer built-in `fetch` and existing platform features before adding dependencies.
