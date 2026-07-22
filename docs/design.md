@@ -1,6 +1,6 @@
 # Feed Reader Design
 
-This document records the agreed first-version scope. The deterministic CLI features described below are implemented, including selector-based websites; browser ingestion and skill packaging remain planned.
+This document records the agreed first-version scope. The deterministic CLI and thin skill described below are implemented, including selector-based websites and browser fallback. Persisting browser-extracted items remains planned.
 
 ## 1. Product boundary
 
@@ -184,7 +184,7 @@ The package stays private at version `0.0.0` until the implementation and packag
 
 ## 10. Skill packaging
 
-The repository will later contain:
+The repository contains:
 
 ```text
 skills/feed-reader/
@@ -194,6 +194,8 @@ skills/feed-reader/
 ```
 
 `SKILL.md` should contain only the workflow and non-obvious decisions needed by an agent. It should not contain another copy of the TypeScript implementation or separate user documentation.
+
+The skill may be triggered by matching natural language or explicitly as `$feed-reader`. It does not define a portable custom slash command. It calls an installed `feed-reader` executable or the built CLI in a repository checkout.
 
 ## 11. Implementation acceptance checks
 

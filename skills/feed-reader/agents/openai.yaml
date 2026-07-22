@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feed Reader"
+  short_description: "Discover, import, sync, and summarize web feeds"
+  default_prompt: "Use $feed-reader to fetch new feed items and summarize the useful ones."
