@@ -4,8 +4,41 @@
   "description": "Read RSS, Atom, and configured web feeds through a TypeScript CLI and agent skill.",
   "private": true,
   "type": "module",
+  "bin": {
+    "feed-reader": "bin/feed-reader.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "bin",
+    "dist",
+    "skills/feed-reader"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include=src/**/*.ts --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 test/**/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
   "engines": {
     "node": ">=22"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^12.10.0",
+    "fast-xml-parser": "^5.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.19.1",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
+  }
 }

@@ -2,7 +2,44 @@
 
 Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin agent skill.
 
-> Status: documentation and design only. The CLI and skill are not implemented yet.
+> Status: the first RSS/Atom CLI loop is implemented. Feed discovery, selector-based websites, imports, and the agent skill are planned next.
+
+## Development quick start
+
+Requires Node.js 22 or newer and pnpm.
+
+```bash
+pnpm install
+pnpm build
+```
+
+Create `feed-reader.json`:
+
+```json
+{
+  "sources": [
+    {
+      "id": "example",
+      "url": "https://example.com/feed.xml",
+      "categories": ["Example"]
+    }
+  ]
+}
+```
+
+Run the first sync to establish a baseline, then inspect stored items and source status:
+
+```bash
+node bin/feed-reader.js sync --db ./feed-reader.sqlite
+node bin/feed-reader.js items --db ./feed-reader.sqlite --json
+node bin/feed-reader.js status --db ./feed-reader.sqlite --json
+```
+
+Run the complete test suite with enforced 100% line, branch, and function coverage:
+
+```bash
+pnpm test
+```
 
 ## Goals
 
@@ -14,7 +51,7 @@ Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin a
 - Keep state isolated when callers choose a project.
 - Return normalized items for callers to list, filter, or summarize.
 
-## Planned usage
+## Usage
 
 People can use natural language without learning the internal state model:
 
@@ -24,10 +61,9 @@ Fetch new articles and show me the list.
 Summarize the useful AI articles from the last 24 hours.
 ```
 
-Agents and applications can use the planned CLI directly:
+Agents and applications can use the implemented core CLI directly:
 
 ```bash
-feed-reader feeds import subscriptions.opml --project daily-ai --category AI
 feed-reader sync --project daily-ai
 feed-reader items --project daily-ai --category AI --since 24h --json
 feed-reader status --project daily-ai --json
@@ -70,10 +106,10 @@ The package will not bundle Playwright or attempt to infer arbitrary website lay
 
 See [docs/design.md](docs/design.md) for the current requirements and implementation contract.
 
-## Planned milestones
+## Milestones
 
-1. Implement the config model, SQLite storage, and normalized output types.
-2. Implement feed discovery, RSS/Atom parsing, retries, baseline, and deduplication.
+1. **Complete:** config model, SQLite storage, normalized output, RSS/Atom parsing, retries, baseline, deduplication, and core CLI.
+2. Add feed discovery from ordinary web pages.
 3. Add selector-based web sources and OPML/JSON import.
 4. Add the thin agent skill and browser-ingestion path.
 5. Validate against real mixed RSS and non-RSS sources before publishing.

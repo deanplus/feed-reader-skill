@@ -1,0 +1,172 @@
+import assert from "node:assert/strict";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+import { runCli } from "../src/cli.ts";
+
+interface Capture {
+  stdout: string;
+  stderr: string;
+  io: {
+    stdout: (value: string) => void;
+    stderr: (value: string) => void;
+  };
+}
+
+function capture(): Capture {
+  const result: Capture = {
+    stdout: "",
+    stderr: "",
+    io: {
+      stdout: (value) => { result.stdout += value; },
+      stderr: (value) => { result.stderr += value; },
+    },
+  };
+  return result;
+}
+
+test("runCli handles help, missing commands, unknown options, and unknown commands", async () => {
+  for (const flag of ["help", "--help", "-h"]) {
+    const output = capture();
+    assert.equal(await runCli([flag], { io: output.io }), 0);
+    assert.match(output.stdout, /Usage:/);
+  }
+
+  const missing = capture();
+  assert.equal(await runCli([], { io: missing.io }), 1);
+  assert.match(missing.stderr, /Usage:/);
+
+  const invalid = capture();
+  assert.equal(await runCli(["status", "--unknown"], { io: invalid.io }), 1);
+  assert.match(invalid.stderr, /Unknown option/);
+
+  const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-errors-"));
+  const unknown = capture();
+  assert.equal(await runCli(["wat", "--db", join(directory, "db.sqlite")], { io: unknown.io }), 1);
+  assert.match(unknown.stderr, /Unknown command: wat/);
+});
+
+test("runCli syncs, lists, filters, and reports status", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-"));
+  const config = join(directory, "feed-reader.json");
+  const database = join(directory, "state.sqlite");
+  await writeFile(config, JSON.stringify({
+    project: "cli-project",
+    sources: [{ id: "source", url: "https://example.com/feed", categories: ["AI"] }],
+  }));
+  let run = 0;
+  const fetcher = async () => new Response(`<rss><channel>
+    <item><title>Old</title><link>https://example.com/old</link><pubDate>2026-07-21</pubDate></item>
+    <item><title>Undated</title><link>https://example.com/undated</link></item>
+    ${run === 0 ? "" : "<item><title>New</title><link>https://example.com/new</link><pubDate>2026-07-22</pubDate></item>"}
+  </channel></rss>`);
+  const times = [new Date("2026-07-22T12:00:00Z"), new Date("2026-07-23T12:00:00Z")];
+  const now = () => times.shift() as Date;
+
+  const baseline = capture();
+  assert.equal(await runCli(["sync", "--config", config, "--db", database], {
+    io: baseline.io, fetcher, now,
+  }), 0);
+  assert.match(baseline.stdout, /0 new items/);
+
+  run = 1;
+  const incremental = capture();
+  assert.equal(await runCli(["sync", "--config", config, "--db", database, "--json"], {
+    io: incremental.io, fetcher, now,
+  }), 0);
+  assert.equal(JSON.parse(incremental.stdout).newItems[0].title, "New");
+
+  const items = capture();
+  assert.equal(await runCli(["items", "--config", config, "--db", database, "--source", "source", "--category", "AI", "--since", "3d", "--json"], {
+    io: items.io,
+    now: () => new Date("2026-07-23T12:00:00Z"),
+  }), 0);
+  assert.equal(JSON.parse(items.stdout).items.length, 3);
+
+  const hours = capture();
+  assert.equal(await runCli(["items", "--project", "cli-project", "--db", database, "--since", "36h"], {
+    io: hours.io,
+    now: () => new Date("2026-07-23T12:00:00Z"),
+  }), 0);
+  assert.match(hours.stdout, /New/);
+  assert.match(hours.stdout, /Undated/);
+  assert.doesNotMatch(hours.stdout, /Old/);
+
+  const status = capture();
+  assert.equal(await runCli(["status", "--config", config, "--db", database, "--json"], { io: status.io }), 0);
+  assert.equal(JSON.parse(status.stdout).sources[0].status, "ok");
+
+  const plainStatus = capture();
+  assert.equal(await runCli(["status", "--project", "cli-project", "--db", database], { io: plainStatus.io }), 0);
+  assert.match(plainStatus.stdout, /source\tok/);
+});
+
+test("runCli handles empty output, invalid durations, missing config, and total sync failure", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-empty-"));
+  const database = join(directory, "state.sqlite");
+  const emptyItems = capture();
+  assert.equal(await runCli(["items", "--db", database], { io: emptyItems.io }), 0);
+  assert.equal(emptyItems.stdout, "No items.\n");
+
+  const emptyStatus = capture();
+  assert.equal(await runCli(["status", "--db", database], { io: emptyStatus.io }), 0);
+  assert.equal(emptyStatus.stdout, "No sources.\n");
+
+  const invalidSince = capture();
+  assert.equal(await runCli(["items", "--db", database, "--since", "yesterday"], { io: invalidSince.io }), 1);
+  assert.match(invalidSince.stderr, /--since must use hours or days/);
+
+  const config = join(directory, "feed-reader.json");
+  await writeFile(config, JSON.stringify({ sources: [{ id: "bad", url: "https://example.com/bad" }] }));
+  const failed = capture();
+  assert.equal(await runCli(["sync", "--config", config, "--db", database], {
+    io: failed.io,
+    fetcher: async () => { throw new Error("offline"); },
+    sleep: async () => {},
+    now: () => new Date("2026-07-22T00:00:00Z"),
+  }), 1);
+  assert.match(failed.stdout, /1 errors/);
+
+  const failedStatus = capture();
+  assert.equal(await runCli(["status", "--config", config, "--db", database], { io: failedStatus.io }), 0);
+  assert.match(failedStatus.stdout, /bad\terror\toffline/);
+
+  const configDefault = capture();
+  assert.equal(await runCli(["items", "--config", config, "--db", database, "--since", "1d", "--json"], { io: configDefault.io }), 0);
+  assert.equal(JSON.parse(configDefault.stdout).project, "default");
+
+  await writeFile(config, "{");
+  const badConfig = capture();
+  assert.equal(await runCli(["status", "--config", config, "--db", database], { io: badConfig.io }), 1);
+  assert.match(badConfig.stderr, /Cannot read config/);
+});
+
+test("runCli can use its default IO and database path", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-defaults-"));
+  const previous = process.env.XDG_DATA_HOME;
+  process.env.XDG_DATA_HOME = directory;
+  try {
+    assert.equal(await runCli(["status", "--project", "default-io"]), 0);
+    assert.equal(await runCli(["wat", "--db", join(directory, "unknown.sqlite")]), 1);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.XDG_DATA_HOME;
+    } else {
+      process.env.XDG_DATA_HOME = previous;
+    }
+  }
+});
+
+test("runCli reports non-Error output failures", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-output-"));
+  let stderr = "";
+  const code = await runCli(["status", "--project", "output", "--db", join(directory, "db.sqlite")], {
+    io: {
+      stdout: () => { throw "write failed"; },
+      stderr: (value) => { stderr += value; },
+    },
+  });
+  assert.equal(code, 1);
+  assert.equal(stderr, "write failed\n");
+});

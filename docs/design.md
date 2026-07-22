@@ -1,6 +1,6 @@
 # Feed Reader Design
 
-This document records the agreed first-version scope. It is an implementation contract, not a description of completed behavior.
+This document records the agreed first-version scope. The core RSS/Atom loop described below is implemented; feed discovery, imports, selector-based websites, browser ingestion, and skill packaging remain planned.
 
 ## 1. Product boundary
 
@@ -30,6 +30,8 @@ The skill must call the CLI rather than duplicate its implementation. It does no
 - Establish a baseline on the first sync instead of reporting all history as new.
 - Allow an explicit history limit when creating the baseline.
 - Never disable a source from a single transient failure.
+
+The implemented core loop baselines every item returned by the feed. An explicit first-run history limit remains planned.
 
 ### State
 
@@ -103,16 +105,18 @@ Import behavior:
 - Merge duplicate source URLs.
 - Leave sources unclassified when no category exists.
 
-## 5. Planned CLI
+## 5. CLI
 
 ```bash
 feed-reader discover <url> [--json]
 feed-reader feeds import <file> [--project <name>] [--category <name>] [--config <file>]
 feed-reader sync [--project <name>] [--config <file>] [--db <file>] [--json]
-feed-reader items [--project <name>] [--category <name>] [--since <duration>] [--db <file>] [--json]
+feed-reader items [--project <name>] [--source <id>] [--category <name>] [--since <duration>] [--config <file>] [--db <file>] [--json]
 feed-reader items ingest --source <id> [--project <name>] [--input <file>] [--db <file>]
-feed-reader status [--project <name>] [--db <file>] [--json]
+feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
 ```
+
+`sync`, `items`, and `status` are implemented. `discover`, `feeds import`, and `items ingest` remain planned.
 
 `items ingest` accepts normalized items extracted by an agent browser, reading stdin when `--input` is absent. It lets those items use the same deduplication state as directly fetched items.
 
