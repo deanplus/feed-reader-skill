@@ -180,7 +180,7 @@ The package does not depend on an AI model or API key.
 - Prefer built-in `fetch` and existing platform features before adding dependencies.
 - Keep the CLI and public TypeScript API on the same underlying functions.
 
-The package stays private at version `0.0.0` until the implementation and package name are ready for publication.
+The first public package version is `0.1.0` under the unscoped name `feed-reader-skill`.
 
 ## 10. Skill packaging
 

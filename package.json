@@ -1,9 +1,14 @@
 {
   "name": "feed-reader-skill",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Read RSS, Atom, and configured web feeds through a TypeScript CLI and agent skill.",
-  "private": true,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deanplus/feed-reader-skill.git"
+  },
+  "homepage": "https://github.com/deanplus/feed-reader-skill#readme",
+  "bugs": "https://github.com/deanplus/feed-reader-skill/issues",
   "bin": {
     "feed-reader": "bin/feed-reader.js"
   },
@@ -20,6 +25,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
     "test": "npm run build && node --import tsx --test --test-concurrency=1 test/**/*.test.ts",
     "test:coverage": "npm run build && node --import tsx --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include=src/**/*.ts --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 test/**/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -28,6 +34,9 @@
     "node": ">=20.18.1"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "better-sqlite3": "^12.10.0",
     "cheerio": "^1.1.2",

@@ -4,6 +4,17 @@ Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin a
 
 > Status: the deterministic CLI and thin agent skill are implemented for RSS, Atom, feed discovery, OPML import, configured listing pages, browser fallback, and caller-generated summaries.
 
+## Install
+
+Requires Node.js 20.18.1 or newer.
+
+```bash
+npm install --global feed-reader-skill
+feed-reader --help
+```
+
+Install the repository's `skills/feed-reader` directory through your agent's normal Git-based skill installer, then invoke it with `$feed-reader` or matching natural language. The skill uses the CLI from `PATH`.
+
 ## Development quick start
 
 Requires Node.js 20.18.1 or newer and pnpm.
@@ -67,7 +78,7 @@ Fetch new articles and show me the list.
 Summarize the useful AI articles from the last 24 hours.
 ```
 
-The repository includes [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md). Register that directory through the agent's normal Git repository or local skill installation flow. Until the CLI is published as a package, keep the repository checkout, run `pnpm install && pnpm build`, and let the skill use `node <repository-root>/bin/feed-reader.js`.
+The repository includes [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md). Register that directory through the agent's normal Git repository or local skill installation flow. The skill uses the installed `feed-reader` command, or `node <repository-root>/bin/feed-reader.js` while developing from a checkout.
 
 Invoke the skill explicitly with `$feed-reader` or use matching natural language. It does not define a portable custom slash command; the agent translates the request into CLI calls.
 
@@ -149,7 +160,7 @@ See [docs/design.md](docs/design.md) for the current requirements and implementa
 3. **Complete:** import OPML groups as categories and merge duplicate feed URLs into native JSON configuration.
 4. **Complete:** extract static listing pages with explicit CSS selectors and store normalized `web` items.
 5. **Complete:** add the thin agent skill for natural-language invocation, list/summary selection, and browser fallback.
-6. Validate against real mixed RSS and non-RSS sources before publishing.
+6. **Complete:** validate RSS discovery, OPML import, selector extraction, Node.js 20 compatibility, Skill packaging, and npm contents before publishing `v0.1.0`.
 
 ## License
 
