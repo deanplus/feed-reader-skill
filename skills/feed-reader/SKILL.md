@@ -10,8 +10,10 @@ Use the repository CLI for deterministic discovery, fetching, deduplication, and
 ## Resolve the CLI and state
 
 1. Use `feed-reader` when it is available on `PATH`.
-2. In a repository checkout, use `node <repository-root>/bin/feed-reader.js` after confirming `dist/cli.js` exists. If it does not, run the repository's documented install and build steps only when dependency installation is authorized.
-3. If neither form is available, stop and explain that the Feed Reader CLI must be installed or built. Do not recreate its logic inside the skill.
+2. In a repository checkout with built output and installed dependencies, use `node <repository-root>/bin/feed-reader.js`.
+3. Otherwise use `npx --yes feed-reader-skill@latest`. This keeps Skill installation independent from global npm installation.
+
+Do not recreate the CLI logic inside the skill or install repository dependencies without authorization.
 
 Use an existing config when one is provided. Otherwise use `feed-reader.json` in the working directory.
 

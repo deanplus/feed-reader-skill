@@ -6,7 +6,7 @@ Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin a
 
 > Status: the deterministic CLI and thin agent skill are implemented for RSS, Atom, feed discovery, OPML import, configured listing pages, browser fallback, and caller-generated summaries.
 
-## Install
+## Install the CLI
 
 Requires Node.js 20.18.1 or newer.
 
@@ -15,7 +15,30 @@ npm install --global feed-reader-skill
 feed-reader --help
 ```
 
-Install the repository's `skills/feed-reader` directory through your agent's normal Git-based skill installer, then invoke it with `$feed-reader` or matching natural language. The skill uses the CLI from `PATH`.
+## Install the Skill
+
+Install interactively to any agent supported by the Vercel Labs Skills CLI:
+
+```bash
+npx skills add deanplus/feed-reader-skill
+```
+
+Or install globally to a specific agent:
+
+```bash
+npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a codex -y
+npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a claude-code -y
+```
+
+This installs the Skill instructions. When `feed-reader` is not on `PATH`, the Skill runs the published CLI through `npx feed-reader-skill@latest`, so a separate global CLI installation is optional. Add `--list` only to inspect the Skills found in the repository without installing them.
+
+Claude Code users can alternatively install from this repository's marketplace:
+
+```text
+/plugin marketplace add deanplus/feed-reader-skill
+/plugin install feed-reader@feed-reader-skills
+/reload-plugins
+```
 
 ## Development quick start
 
@@ -80,7 +103,7 @@ Fetch new articles and show me the list.
 Summarize the useful AI articles from the last 24 hours.
 ```
 
-The repository includes [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md). Register that directory through the agent's normal Git repository or local skill installation flow. The skill uses the installed `feed-reader` command, or `node <repository-root>/bin/feed-reader.js` while developing from a checkout.
+The repository includes [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md). Register that directory through the agent's normal Git repository or local Skill installation flow. The Skill uses an installed `feed-reader` command, a built repository checkout, or `npx feed-reader-skill@latest`.
 
 Invoke the skill explicitly with `$feed-reader` or use matching natural language. It does not define a portable custom slash command; the agent translates the request into CLI calls.
 

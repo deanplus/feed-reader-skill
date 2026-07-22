@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "feed-reader-skills",
+  "description": "Feed discovery, incremental reading, and summaries for Claude Code.",
+  "owner": {
+    "name": "deanplus"
+  },
+  "plugins": [
+    {
+      "name": "feed-reader",
+      "description": "Discover, import, read, filter, and summarize RSS, Atom, and configured web listings.",
+      "source": "./skills/feed-reader",
+      "strict": false
+    }
+  ]
+}
