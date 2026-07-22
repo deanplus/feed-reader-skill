@@ -19,6 +19,7 @@
     }
   },
   "files": [
+    "README.zh-CN.md",
     "bin",
     "dist",
     "skills/feed-reader"

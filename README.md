@@ -1,5 +1,7 @@
 # Feed Reader Skill
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin agent skill.
 
 > Status: the deterministic CLI and thin agent skill are implemented for RSS, Atom, feed discovery, OPML import, configured listing pages, browser fallback, and caller-generated summaries.
