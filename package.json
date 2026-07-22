@@ -1,0 +1,11 @@
+{
+  "name": "feed-reader-skill",
+  "version": "0.0.0",
+  "description": "Read RSS, Atom, and configured web feeds through a TypeScript CLI and agent skill.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}
