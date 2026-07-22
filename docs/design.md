@@ -1,6 +1,6 @@
 # Feed Reader Design
 
-This document records the agreed first-version scope. The core RSS/Atom loop, feed discovery, and OPML import described below are implemented; selector-based websites, browser ingestion, and skill packaging remain planned.
+This document records the agreed first-version scope. The deterministic CLI features described below are implemented, including selector-based websites; browser ingestion and skill packaging remain planned.
 
 ## 1. Product boundary
 
@@ -74,7 +74,7 @@ The first version imports OPML into the native JSON configuration format. CSV, a
 
 Resolve configuration from an explicit `--config <file>` and then `feed-reader.json` in the current directory. `feeds import` creates or merges that file unless another path is supplied.
 
-Configuration shape after selector support is added:
+Configuration shape:
 
 ```json
 {
@@ -117,6 +117,8 @@ feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
 ```
 
 `discover`, `feeds import` for OPML, `sync`, `items`, and `status` are implemented. `items ingest` remains planned.
+
+For configured web extraction, `item`, `title`, and `link` selectors are required. `date` and `summary` are optional. `type: "auto"` tries a direct feed and declared feed metadata before selectors; `type: "web"` skips feed discovery and reads the listing page directly. A page with no matching or valid items is an error rather than a verified empty update.
 
 `items ingest` accepts normalized items extracted by an agent browser, reading stdin when `--input` is absent. It lets those items use the same deduplication state as directly fetched items.
 

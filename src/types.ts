@@ -1,8 +1,17 @@
+export interface WebSelectors {
+  item: string;
+  title: string;
+  link: string;
+  date?: string;
+  summary?: string;
+}
+
 export interface SourceConfig {
   id: string;
   url: string;
-  type: "auto" | "rss" | "atom";
+  type: "auto" | "rss" | "atom" | "web";
   categories: string[];
+  selectors?: WebSelectors;
 }
 
 export interface FeedConfig {
@@ -24,7 +33,7 @@ export interface NormalizedItem {
   fetchedAt: string;
   summary?: string;
   categories: string[];
-  method: "rss";
+  method: "rss" | "web";
   dedupeKey: string;
 }
 

@@ -21,7 +21,7 @@ interface ItemRow {
   fetched_at: string;
   summary: string | null;
   categories: string;
-  method: "rss";
+  method: NormalizedItem["method"];
   dedupe_key: string;
 }
 

@@ -50,10 +50,16 @@ function absoluteUrl(value: unknown, base: string): string | undefined {
     return undefined;
   }
   try {
-    return new URL(raw, base).toString();
+    const url = new URL(raw, base);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : undefined;
   } catch {
     return undefined;
   }
+}
+
+function content(value: string): string | undefined {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized === "" ? undefined : normalized;
 }
 
 function isoDate(value: unknown): string | undefined {
@@ -140,6 +146,49 @@ export function parseFeed(xml: string, source: SourceConfig, fetchedAt = new Dat
   throw new Error("Unsupported feed format");
 }
 
+export function parseWebPage(html: string, source: SourceConfig, fetchedAt = new Date()): NormalizedItem[] {
+  const selectors = source.selectors;
+  if (selectors === undefined) {
+    throw new Error(`Web selectors are required for source ${source.id}`);
+  }
+  const $ = load(html);
+  const elements = $(selectors.item);
+  if (elements.length === 0) {
+    throw new Error(`No items matched selector: ${selectors.item}`);
+  }
+  const items: NormalizedItem[] = [];
+  elements.each((_index, element) => {
+    const item = $(element);
+    const title = content(item.find(selectors.title).first().text());
+    const link = absoluteUrl(item.find(selectors.link).first().attr("href"), source.url);
+    if (title === undefined || link === undefined) {
+      return;
+    }
+    const dateElement = selectors.date === undefined ? undefined : item.find(selectors.date).first();
+    const publishedAt = dateElement === undefined
+      ? undefined
+      : isoDate(dateElement.attr("datetime") ?? dateElement.text());
+    const summary = selectors.summary === undefined
+      ? undefined
+      : content(item.find(selectors.summary).first().text());
+    items.push({
+      sourceId: source.id,
+      title,
+      url: link,
+      ...(publishedAt === undefined ? {} : { publishedAt }),
+      fetchedAt: fetchedAt.toISOString(),
+      ...(summary === undefined ? {} : { summary }),
+      categories: source.categories,
+      method: "web",
+      dedupeKey: dedupeKey(link),
+    });
+  });
+  if (items.length === 0) {
+    throw new Error("No valid items found on listing page");
+  }
+  return items;
+}
+
 async function retry<T>(operation: () => Promise<T>, sleep: (milliseconds: number) => Promise<void>): Promise<T> {
   const delays = [1_000, 2_000, 4_000];
   let lastError: unknown;
@@ -221,8 +270,13 @@ export async function fetchFeed(source: SourceConfig, fetchedAt: Date, options: 
   const fetcher = options.fetcher ?? globalThis.fetch;
   const sleep = options.sleep ?? defaultSleep;
   return retry(async () => {
-    const accept = source.type === "auto" ? `text/html, application/xhtml+xml, ${feedAccept}` : feedAccept;
+    const accept = source.type === "auto" || source.type === "web"
+      ? `text/html, application/xhtml+xml, ${feedAccept}`
+      : feedAccept;
     const content = await requestText(source.url, accept, fetcher, options.timeoutMs ?? 15_000);
+    if (source.type === "web") {
+      return parseWebPage(content, source, fetchedAt);
+    }
     try {
       return parseFeed(content, source, fetchedAt);
     } catch (error) {
@@ -231,6 +285,9 @@ export async function fetchFeed(source: SourceConfig, fetchedAt: Date, options: 
       }
       const discovered = discoverFeedsFromHtml(content, source.url)[0];
       if (discovered === undefined) {
+        if (source.selectors !== undefined) {
+          return parseWebPage(content, source, fetchedAt);
+        }
         throw new Error("No RSS or Atom feed discovered");
       }
       const xml = await requestText(discovered.url, feedAccept, fetcher, options.timeoutMs ?? 15_000);

@@ -17,6 +17,17 @@ test("parseConfig normalizes valid sources and optional project", () => {
       id: "atom",
       url: "http://example.com/atom.xml",
       type: "atom",
+    }, {
+      id: "web",
+      url: "https://example.com/blog",
+      type: "web",
+      selectors: {
+        item: " article ",
+        title: " h2 ",
+        link: " a ",
+        date: " time ",
+        summary: " .summary ",
+      },
     }],
   }), {
     project: "news",
@@ -30,6 +41,18 @@ test("parseConfig normalizes valid sources and optional project", () => {
       url: "http://example.com/atom.xml",
       type: "atom",
       categories: [],
+    }, {
+      id: "web",
+      url: "https://example.com/blog",
+      type: "web",
+      categories: [],
+      selectors: {
+        item: "article",
+        title: "h2",
+        link: "a",
+        date: "time",
+        summary: ".summary",
+      },
     }],
   });
   assert.deepEqual(parseConfig({ sources: [] }), { sources: [] });
@@ -44,7 +67,11 @@ test("parseConfig rejects invalid input", () => {
     [{ sources: [{ id: "", url: "https://example.com" }] }, /sources\[0\]\.id/],
     [{ sources: [{ id: "x", url: "" }] }, /sources\[0\]\.url/],
     [{ sources: [{ id: "x", url: "mailto:test@example.com" }] }, /must use http or https/],
-    [{ sources: [{ id: "x", url: "https://example.com", type: "web" }] }, /type must be/],
+    [{ sources: [{ id: "x", url: "https://example.com", type: "other" }] }, /type must be/],
+    [{ sources: [{ id: "x", url: "https://example.com", type: "web" }] }, /selectors is required/],
+    [{ sources: [{ id: "x", url: "https://example.com", selectors: "article" }] }, /selectors must be an object/],
+    [{ sources: [{ id: "x", url: "https://example.com", selectors: {} }] }, /selectors.item/],
+    [{ sources: [{ id: "x", url: "https://example.com", selectors: { item: "x", title: "x", link: "x", date: "" } }] }, /selectors.date/],
     [{ sources: [{ id: "x", url: "https://example.com", categories: "AI" }] }, /categories must be an array/],
     [{ sources: [{ id: "x", url: "https://example.com", categories: [""] }] }, /categories\[0\]/],
     [{ sources: [

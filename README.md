@@ -2,7 +2,7 @@
 
 Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin agent skill.
 
-> Status: the RSS/Atom CLI loop, feed discovery, and OPML import are implemented. Selector-based websites and the agent skill are planned next.
+> Status: the deterministic CLI is implemented for RSS, Atom, feed discovery, OPML import, and configured listing pages. The agent skill is planned next.
 
 ## Development quick start
 
@@ -91,7 +91,31 @@ The first version will not open every article to extract full text.
 
 ## Sources without RSS
 
-The planned fallback order is:
+Configure stable selectors for the listing page:
+
+```json
+{
+  "sources": [
+    {
+      "id": "example-blog",
+      "url": "https://example.com/blog",
+      "type": "auto",
+      "categories": ["Example"],
+      "selectors": {
+        "item": "article",
+        "title": "h2",
+        "link": "a",
+        "date": "time",
+        "summary": ".summary"
+      }
+    }
+  ]
+}
+```
+
+`type: "auto"` first discovers RSS or Atom and uses selectors only when no feed is declared. Use `type: "web"` to read the listing page directly. `item`, `title`, and `link` are required; `date` and `summary` are optional.
+
+The fallback order is:
 
 1. Discover RSS or Atom metadata from the page.
 2. Use configured CSS selectors when no feed exists.
@@ -113,7 +137,7 @@ See [docs/design.md](docs/design.md) for the current requirements and implementa
 1. **Complete:** config model, SQLite storage, normalized output, RSS/Atom parsing, retries, baseline, deduplication, and core CLI.
 2. **Complete:** feed discovery from ordinary web pages and automatic source resolution.
 3. **Complete:** import OPML groups as categories and merge duplicate feed URLs into native JSON configuration.
-4. Add selector-based web sources.
+4. **Complete:** extract static listing pages with explicit CSS selectors and store normalized `web` items.
 5. Add the thin agent skill and browser fallback workflow.
 6. Validate against real mixed RSS and non-RSS sources before publishing.
 

@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { FeedConfig, SourceConfig } from "./types.ts";
+import type { FeedConfig, SourceConfig, WebSelectors } from "./types.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -11,6 +11,26 @@ function nonEmptyString(value: unknown, label: string): string {
     throw new Error(`${label} must be a non-empty string`);
   }
   return value.trim();
+}
+
+function parseSelectors(value: unknown, index: number): WebSelectors | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!isRecord(value)) {
+    throw new Error(`sources[${index}].selectors must be an object`);
+  }
+  const selectors: WebSelectors = {
+    item: nonEmptyString(value.item, `sources[${index}].selectors.item`),
+    title: nonEmptyString(value.title, `sources[${index}].selectors.title`),
+    link: nonEmptyString(value.link, `sources[${index}].selectors.link`),
+  };
+  for (const name of ["date", "summary"] as const) {
+    if (value[name] !== undefined) {
+      selectors[name] = nonEmptyString(value[name], `sources[${index}].selectors.${name}`);
+    }
+  }
+  return selectors;
 }
 
 function parseSource(value: unknown, index: number): SourceConfig {
@@ -26,8 +46,13 @@ function parseSource(value: unknown, index: number): SourceConfig {
   }
 
   const type = value.type ?? "auto";
-  if (type !== "auto" && type !== "rss" && type !== "atom") {
-    throw new Error(`sources[${index}].type must be auto, rss, or atom`);
+  if (type !== "auto" && type !== "rss" && type !== "atom" && type !== "web") {
+    throw new Error(`sources[${index}].type must be auto, rss, atom, or web`);
+  }
+
+  const selectors = parseSelectors(value.selectors, index);
+  if (type === "web" && selectors === undefined) {
+    throw new Error(`sources[${index}].selectors is required for web sources`);
   }
 
   const categories = value.categories ?? [];
@@ -41,6 +66,7 @@ function parseSource(value: unknown, index: number): SourceConfig {
     type,
     categories: [...new Set(categories.map((category, categoryIndex) =>
       nonEmptyString(category, `sources[${index}].categories[${categoryIndex}]`)))],
+    ...(selectors === undefined ? {} : { selectors }),
   };
 }
 

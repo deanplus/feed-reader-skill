@@ -15,6 +15,7 @@ test("the public API exports the core feed reader surface", () => {
     "parseConfig",
     "parseFeed",
     "parseOpml",
+    "parseWebPage",
     "saveConfig",
     "syncFeeds",
   ]);

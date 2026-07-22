@@ -158,6 +158,38 @@ test("runCli syncs, lists, filters, and reports status", async () => {
   assert.match(plainStatus.stdout, /source\tok/);
 });
 
+test("runCli syncs selector-based web sources", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-web-"));
+  const config = join(directory, "feed-reader.json");
+  const database = join(directory, "state.sqlite");
+  await writeFile(config, JSON.stringify({
+    sources: [{
+      id: "blog",
+      url: "https://example.com/blog",
+      type: "web",
+      selectors: { item: "article", title: "h2", link: "a", summary: "p" },
+    }],
+  }));
+  let includeNew = false;
+  const fetcher = async () => new Response(`
+    <article><h2>Old</h2><a href="/old"></a><p>Old summary</p></article>
+    ${includeNew ? '<article><h2>New</h2><a href="/new"></a><p>New summary</p></article>' : ""}
+  `);
+  assert.equal(await runCli(["sync", "--config", config, "--db", database], {
+    io: capture().io, fetcher,
+  }), 0);
+  includeNew = true;
+  const sync = capture();
+  assert.equal(await runCli(["sync", "--config", config, "--db", database, "--json"], {
+    io: sync.io, fetcher,
+  }), 0);
+  assert.equal(JSON.parse(sync.stdout).newItems[0].method, "web");
+
+  const items = capture();
+  assert.equal(await runCli(["items", "--config", config, "--db", database, "--json"], { io: items.io }), 0);
+  assert.deepEqual(JSON.parse(items.stdout).items.map((item: { title: string }) => item.title), ["New", "Old"]);
+});
+
 test("runCli handles empty output, invalid durations, missing config, and total sync failure", async () => {
   const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-empty-"));
   const database = join(directory, "state.sqlite");

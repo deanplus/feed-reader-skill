@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { discoverFeeds, discoverFeedsFromHtml, fetchFeed, parseFeed } from "../src/feed.ts";
+import { discoverFeeds, discoverFeedsFromHtml, fetchFeed, parseFeed, parseWebPage } from "../src/feed.ts";
 import type { SourceConfig } from "../src/types.ts";
 
 const source: SourceConfig = {
@@ -31,6 +31,7 @@ test("parseFeed normalizes RSS entries and ignores unusable items", () => {
       <item><title>Missing link</title></item>
       <item><link>https://example.com/missing-title</link></item>
       <item><title>Bad link</title><link>http://[bad</link></item>
+      <item><title>Unsafe link</title><link>javascript:alert(1)</link></item>
       <item><title> </title><link>https://example.com/blank-title</link></item>
       <item>text only</item>
     </channel></rss>
@@ -225,4 +226,69 @@ test("fetchFeed auto mode reports pages without a feed", async () => {
     fetcher: async () => new Response("<html/>"),
     sleep: async () => {},
   }), /Unsupported feed format/);
+});
+
+test("parseWebPage extracts configured listing content", () => {
+  const webSource: SourceConfig = {
+    id: "blog",
+    url: "https://example.com/blog/",
+    type: "web",
+    categories: ["Tech"],
+    selectors: {
+      item: "article",
+      title: "h2",
+      link: "a.story",
+      date: "time",
+      summary: ".summary",
+    },
+  };
+  const items = parseWebPage(`
+    <article><h2> First   article </h2><a class="story" href="/first">Read</a><time datetime="2026-07-22">Today</time><p class="summary"> A useful\n summary. </p></article>
+    <article><h2>Second</h2><a class="story" href="second"></a><time>not a date</time><p class="summary"> </p></article>
+    <article><h2>Unsafe</h2><a class="story" href="javascript:alert(1)"></a></article>
+    <article><a class="story" href="/missing-title"></a></article>
+  `, webSource, fetchedAt);
+
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0], {
+    sourceId: "blog",
+    title: "First article",
+    url: "https://example.com/first",
+    publishedAt: "2026-07-22T00:00:00.000Z",
+    fetchedAt: fetchedAt.toISOString(),
+    summary: "A useful summary.",
+    categories: ["Tech"],
+    method: "web",
+    dedupeKey: "f7f1d9a8680a796587390b067e36b64d751357c8edb949dc2844d2ec6b84442f",
+  });
+  assert.equal(items[1]?.publishedAt, undefined);
+  assert.equal(items[1]?.summary, undefined);
+});
+
+test("parseWebPage rejects missing or unusable selectors", () => {
+  assert.throws(() => parseWebPage("<article/>", source, fetchedAt), /selectors are required/);
+  const configured: SourceConfig = {
+    ...source,
+    type: "web",
+    selectors: { item: "article", title: "h2", link: "a" },
+  };
+  assert.throws(() => parseWebPage("<main/>", configured, fetchedAt), /No items matched/);
+  assert.throws(() => parseWebPage("<article><h2>Missing link</h2></article>", configured, fetchedAt), /No valid items/);
+});
+
+test("fetchFeed reads explicit web sources and auto-falls back to selectors", async () => {
+  const configured: SourceConfig = {
+    ...source,
+    url: "https://example.com/blog",
+    type: "web",
+    selectors: { item: "article", title: "h2", link: "a" },
+  };
+  const html = '<article><h2>Listing item</h2><a href="/listing-item"></a></article>';
+  const explicit = await fetchFeed(configured, fetchedAt, { fetcher: async () => new Response(html) });
+  assert.equal(explicit[0]?.method, "web");
+
+  const automatic = await fetchFeed({ ...configured, type: "auto" }, fetchedAt, {
+    fetcher: async () => new Response(html),
+  });
+  assert.equal(automatic[0]?.title, "Listing item");
 });
