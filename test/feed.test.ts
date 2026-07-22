@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { fetchFeed, parseFeed } from "../src/feed.ts";
+import { discoverFeeds, discoverFeedsFromHtml, fetchFeed, parseFeed } from "../src/feed.ts";
 import type { SourceConfig } from "../src/types.ts";
 
 const source: SourceConfig = {
@@ -144,4 +144,85 @@ test("fetchFeed uses the built-in fetch defaults", async () => {
   const xml = "<rss><channel><item><title>Local</title><link>https://example.com/article</link></item></channel></rss>";
   const items = await fetchFeed({ ...source, url: `data:application/xml,${encodeURIComponent(xml)}` }, fetchedAt);
   assert.equal(items[0]?.url, "https://example.com/article");
+});
+
+test("discoverFeedsFromHtml finds, resolves, and deduplicates RSS and Atom links", () => {
+  assert.deepEqual(discoverFeedsFromHtml(`
+    <html><head>
+      <link rel="stylesheet" href="/style.css">
+      <link type="application/rss+xml" href="/missing-rel">
+      <link rel="alternate" href="/missing-type">
+      <link rel="alternate stylesheet" type="application/rss+xml" href="/rss.xml" title=" News ">
+      <link rel="ALTERNATE" type="application/atom+xml; charset=utf-8" href="atom.xml">
+      <link rel="alternate" type="application/rss+xml" href="/rss.xml">
+      <link rel="alternate" type="text/html" href="/not-feed">
+      <link rel="alternate" type="application/rss+xml">
+      <link rel="alternate" type="application/rss+xml" href="http://[bad">
+      <link rel="alternate" type="application/rss+xml" href="javascript:alert(1)">
+      <link rel="alternate" type="application/atom+xml" href="/untitled" title=" ">
+    </head></html>
+  `, "https://example.com/blog/"), [{
+    url: "https://example.com/rss.xml",
+    type: "rss",
+    title: "News",
+  }, {
+    url: "https://example.com/blog/atom.xml",
+    type: "atom",
+  }, {
+    url: "https://example.com/untitled",
+    type: "atom",
+  }]);
+  assert.deepEqual(discoverFeedsFromHtml("<html/>", "https://example.com"), []);
+});
+
+test("discoverFeeds retries HTTP failures and supports the built-in fetch", async () => {
+  const delays: number[] = [];
+  let calls = 0;
+  const discovered = await discoverFeeds("https://example.com/blog", {
+    timeoutMs: 25,
+    sleep: async (delay) => { delays.push(delay); },
+    fetcher: async () => {
+      calls += 1;
+      return calls === 1
+        ? new Response("offline", { status: 503 })
+        : new Response('<link rel="alternate" type="application/rss+xml" href="/feed">');
+    },
+  });
+  assert.equal(discovered[0]?.url, "https://example.com/feed");
+  assert.deepEqual(delays, [1_000]);
+
+  const html = '<link rel="alternate" type="application/atom+xml" href="https://example.com/atom">';
+  assert.equal((await discoverFeeds(`data:text/html,${encodeURIComponent(html)}`))[0]?.type, "atom");
+});
+
+test("fetchFeed auto mode accepts direct feeds and follows discovered feeds", async () => {
+  const direct = await fetchFeed({ ...source, type: "auto" }, fetchedAt, {
+    fetcher: async () => new Response("<rss><channel><item><title>Direct</title><link>https://example.com/direct</link></item></channel></rss>"),
+  });
+  assert.equal(direct[0]?.title, "Direct");
+
+  const requested: string[] = [];
+  const discovered = await fetchFeed({ ...source, url: "https://example.com/blog", type: "auto" }, fetchedAt, {
+    fetcher: async (input) => {
+      requested.push(String(input));
+      return String(input).endsWith("/blog")
+        ? new Response('<link rel="alternate" type="application/atom+xml" href="/atom.xml">')
+        : new Response('<feed><entry><title>Found</title><link href="/found"/></entry></feed>');
+    },
+  });
+  assert.deepEqual(requested, ["https://example.com/blog", "https://example.com/atom.xml"]);
+  assert.equal(discovered[0]?.title, "Found");
+  assert.equal(discovered[0]?.url, "https://example.com/found");
+});
+
+test("fetchFeed auto mode reports pages without a feed", async () => {
+  await assert.rejects(fetchFeed({ ...source, type: "auto" }, fetchedAt, {
+    fetcher: async () => new Response("<html><title>No feed</title></html>"),
+    sleep: async () => {},
+  }), /No RSS or Atom feed discovered/);
+
+  await assert.rejects(fetchFeed(source, fetchedAt, {
+    fetcher: async () => new Response("<html/>"),
+    sleep: async () => {},
+  }), /Unsupported feed format/);
 });

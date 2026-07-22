@@ -2,6 +2,7 @@ import { parseArgs } from "node:util";
 import { loadConfig } from "./config.ts";
 import { defaultDatabasePath, FeedDatabase } from "./database.ts";
 import type { FetchOptions } from "./feed.ts";
+import { discoverFeeds } from "./feed.ts";
 import { syncFeeds } from "./sync.ts";
 
 interface CliIo {
@@ -15,6 +16,7 @@ export interface CliOptions extends FetchOptions {
 }
 
 const usage = `Usage:
+  feed-reader discover <url> [--json]
   feed-reader sync [--project <name>] [--config <file>] [--db <file>] [--json]
   feed-reader items [--project <name>] [--source <id>] [--category <name>] [--since <duration>] [--config <file>] [--db <file>] [--json]
   feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
@@ -66,9 +68,10 @@ export async function runCli(argv: string[], options: CliOptions = {}): Promise<
 
   try {
     const command = argv[0];
-    const { values } = parseArgs({
+    const { values, positionals } = parseArgs({
       args: argv.slice(1),
       strict: true,
+      allowPositionals: true,
       options: {
         project: { type: "string" },
         config: { type: "string", default: "feed-reader.json" },
@@ -79,6 +82,20 @@ export async function runCli(argv: string[], options: CliOptions = {}): Promise<
         json: { type: "boolean" },
       },
     });
+    if (command === "discover") {
+      if (positionals.length !== 1) {
+        throw new Error("discover requires exactly one URL");
+      }
+      const feeds = await discoverFeeds(positionals[0] as string, options);
+      const plain = feeds.length === 0
+        ? "No RSS or Atom feed discovered."
+        : feeds.map((feed) => `${feed.type}\t${feed.url}\t${feed.title ?? ""}`).join("\n");
+      print(io, values.json, { url: positionals[0], feeds }, plain);
+      return feeds.length === 0 ? 1 : 0;
+    }
+    if (positionals.length !== 0) {
+      throw new Error(`${command} does not accept positional arguments`);
+    }
     const database = new FeedDatabase(values.db ?? defaultDatabasePath());
     try {
       if (command === "sync") {

@@ -1,6 +1,6 @@
 # Feed Reader Design
 
-This document records the agreed first-version scope. The core RSS/Atom loop described below is implemented; feed discovery, imports, selector-based websites, browser ingestion, and skill packaging remain planned.
+This document records the agreed first-version scope. The core RSS/Atom loop and feed discovery described below are implemented; imports, selector-based websites, browser ingestion, and skill packaging remain planned.
 
 ## 1. Product boundary
 
@@ -116,7 +116,7 @@ feed-reader items ingest --source <id> [--project <name>] [--input <file>] [--db
 feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
 ```
 
-`sync`, `items`, and `status` are implemented. `discover`, `feeds import`, and `items ingest` remain planned.
+`discover`, `sync`, `items`, and `status` are implemented. `feeds import` and `items ingest` remain planned.
 
 `items ingest` accepts normalized items extracted by an agent browser, reading stdin when `--input` is absent. It lets those items use the same deduplication state as directly fetched items.
 

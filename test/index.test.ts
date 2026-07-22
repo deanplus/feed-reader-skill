@@ -6,6 +6,8 @@ test("the public API exports the core feed reader surface", () => {
   assert.deepEqual(Object.keys(api).sort(), [
     "FeedDatabase",
     "defaultDatabasePath",
+    "discoverFeeds",
+    "discoverFeedsFromHtml",
     "fetchFeed",
     "loadConfig",
     "parseConfig",

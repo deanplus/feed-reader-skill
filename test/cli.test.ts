@@ -45,6 +45,41 @@ test("runCli handles help, missing commands, unknown options, and unknown comman
   const unknown = capture();
   assert.equal(await runCli(["wat", "--db", join(directory, "db.sqlite")], { io: unknown.io }), 1);
   assert.match(unknown.stderr, /Unknown command: wat/);
+
+  const positional = capture();
+  assert.equal(await runCli(["status", "extra", "--db", join(directory, "db.sqlite")], { io: positional.io }), 1);
+  assert.match(positional.stderr, /does not accept positional arguments/);
+});
+
+test("runCli discovers feeds in JSON and plain modes", async () => {
+  const fetcher = async () => new Response('<link rel="alternate" type="application/rss+xml" href="/feed" title="Feed">');
+  const json = capture();
+  assert.equal(await runCli(["discover", "https://example.com", "--json"], { io: json.io, fetcher }), 0);
+  assert.equal(JSON.parse(json.stdout).feeds[0].url, "https://example.com/feed");
+
+  const plain = capture();
+  assert.equal(await runCli(["discover", "https://example.com"], { io: plain.io, fetcher }), 0);
+  assert.equal(plain.stdout, "rss\thttps://example.com/feed\tFeed\n");
+
+  const untitled = capture();
+  assert.equal(await runCli(["discover", "https://example.com"], {
+    io: untitled.io,
+    fetcher: async () => new Response('<link rel="alternate" type="application/atom+xml" href="/atom">'),
+  }), 0);
+  assert.equal(untitled.stdout, "atom\thttps://example.com/atom\t\n");
+
+  const empty = capture();
+  assert.equal(await runCli(["discover", "https://example.com"], {
+    io: empty.io,
+    fetcher: async () => new Response("<html/>"),
+  }), 1);
+  assert.equal(empty.stdout, "No RSS or Atom feed discovered.\n");
+
+  for (const args of [["discover"], ["discover", "one", "two"]]) {
+    const invalid = capture();
+    assert.equal(await runCli(args, { io: invalid.io }), 1);
+    assert.match(invalid.stderr, /requires exactly one URL/);
+  }
 });
 
 test("runCli syncs, lists, filters, and reports status", async () => {

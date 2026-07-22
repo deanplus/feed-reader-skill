@@ -2,7 +2,7 @@
 
 Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin agent skill.
 
-> Status: the first RSS/Atom CLI loop is implemented. Feed discovery, selector-based websites, imports, and the agent skill are planned next.
+> Status: the RSS/Atom CLI loop and feed discovery are implemented. Selector-based websites, imports, and the agent skill are planned next.
 
 ## Development quick start
 
@@ -64,6 +64,7 @@ Summarize the useful AI articles from the last 24 hours.
 Agents and applications can use the implemented core CLI directly:
 
 ```bash
+feed-reader discover https://example.com/blog --json
 feed-reader sync --project daily-ai
 feed-reader items --project daily-ai --category AI --since 24h --json
 feed-reader status --project daily-ai --json
@@ -109,7 +110,7 @@ See [docs/design.md](docs/design.md) for the current requirements and implementa
 ## Milestones
 
 1. **Complete:** config model, SQLite storage, normalized output, RSS/Atom parsing, retries, baseline, deduplication, and core CLI.
-2. Add feed discovery from ordinary web pages.
+2. **Complete:** feed discovery from ordinary web pages and automatic source resolution.
 3. Add selector-based web sources and OPML/JSON import.
 4. Add the thin agent skill and browser-ingestion path.
 5. Validate against real mixed RSS and non-RSS sources before publishing.

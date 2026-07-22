@@ -10,6 +10,12 @@ export interface FeedConfig {
   sources: SourceConfig[];
 }
 
+export interface DiscoveredFeed {
+  url: string;
+  type: "rss" | "atom";
+  title?: string;
+}
+
 export interface NormalizedItem {
   sourceId: string;
   title: string;

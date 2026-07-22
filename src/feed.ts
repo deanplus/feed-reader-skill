@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
+import { load } from "cheerio";
 import { XMLParser } from "fast-xml-parser";
-import type { NormalizedItem, SourceConfig } from "./types.ts";
+import type { DiscoveredFeed, NormalizedItem, SourceConfig } from "./types.ts";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
@@ -10,6 +11,8 @@ export interface FetchOptions {
   timeoutMs?: number;
 }
 
+const feedAccept = "application/atom+xml, application/rss+xml, application/xml, text/xml";
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
@@ -17,6 +20,10 @@ const parser = new XMLParser({
   parseTagValue: false,
   trimValues: true,
 });
+
+function defaultSleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 function array(value: unknown): unknown[] {
   return value === undefined ? [] : Array.isArray(value) ? value : [value];
@@ -133,25 +140,12 @@ export function parseFeed(xml: string, source: SourceConfig, fetchedAt = new Dat
   throw new Error("Unsupported feed format");
 }
 
-export async function fetchFeed(source: SourceConfig, fetchedAt: Date, options: FetchOptions = {}): Promise<NormalizedItem[]> {
-  const fetcher = options.fetcher ?? globalThis.fetch;
-  const sleep = options.sleep ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+async function retry<T>(operation: () => Promise<T>, sleep: (milliseconds: number) => Promise<void>): Promise<T> {
   const delays = [1_000, 2_000, 4_000];
-
   let lastError: unknown;
   for (let attempt = 0; attempt < 4; attempt += 1) {
     try {
-      const response = await fetcher(source.url, {
-        headers: {
-          accept: "application/atom+xml, application/rss+xml, application/xml, text/xml",
-          "user-agent": "feed-reader-skill/0.0.0",
-        },
-        signal: AbortSignal.timeout(options.timeoutMs ?? 15_000),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return parseFeed(await response.text(), source, fetchedAt);
+      return await operation();
     } catch (error) {
       lastError = error;
       if (attempt < delays.length) {
@@ -160,4 +154,87 @@ export async function fetchFeed(source: SourceConfig, fetchedAt: Date, options: 
     }
   }
   throw lastError;
+}
+
+async function requestText(url: string, accept: string, fetcher: Fetcher, timeoutMs: number): Promise<string> {
+  const response = await fetcher(url, {
+    headers: {
+      accept,
+      "user-agent": "feed-reader-skill/0.0.0",
+    },
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.text();
+}
+
+export function discoverFeedsFromHtml(html: string, pageUrl: string): DiscoveredFeed[] {
+  const $ = load(html);
+  const feeds: DiscoveredFeed[] = [];
+  const seen = new Set<string>();
+  $("link").each((_index, element) => {
+    const link = $(element);
+    const rel = (link.attr("rel") ?? "").toLowerCase().split(/\s+/);
+    if (!rel.includes("alternate")) {
+      return;
+    }
+    const mediaType = (link.attr("type") ?? "").split(";", 1)[0]?.trim().toLowerCase();
+    const type = mediaType === "application/rss+xml"
+      ? "rss"
+      : mediaType === "application/atom+xml" ? "atom" : undefined;
+    const href = link.attr("href");
+    if (type === undefined || href === undefined) {
+      return;
+    }
+    let url: string;
+    try {
+      const parsed = new URL(href, pageUrl);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return;
+      }
+      url = parsed.toString();
+    } catch {
+      return;
+    }
+    if (seen.has(url)) {
+      return;
+    }
+    seen.add(url);
+    const title = link.attr("title")?.trim();
+    feeds.push(title === undefined || title === "" ? { url, type } : { url, type, title });
+  });
+  return feeds;
+}
+
+export async function discoverFeeds(url: string, options: FetchOptions = {}): Promise<DiscoveredFeed[]> {
+  const fetcher = options.fetcher ?? globalThis.fetch;
+  const sleep = options.sleep ?? defaultSleep;
+  return retry(async () => {
+    const html = await requestText(url, "text/html, application/xhtml+xml", fetcher, options.timeoutMs ?? 15_000);
+    return discoverFeedsFromHtml(html, url);
+  }, sleep);
+}
+
+export async function fetchFeed(source: SourceConfig, fetchedAt: Date, options: FetchOptions = {}): Promise<NormalizedItem[]> {
+  const fetcher = options.fetcher ?? globalThis.fetch;
+  const sleep = options.sleep ?? defaultSleep;
+  return retry(async () => {
+    const accept = source.type === "auto" ? `text/html, application/xhtml+xml, ${feedAccept}` : feedAccept;
+    const content = await requestText(source.url, accept, fetcher, options.timeoutMs ?? 15_000);
+    try {
+      return parseFeed(content, source, fetchedAt);
+    } catch (error) {
+      if (source.type !== "auto") {
+        throw error;
+      }
+      const discovered = discoverFeedsFromHtml(content, source.url)[0];
+      if (discovered === undefined) {
+        throw new Error("No RSS or Atom feed discovered");
+      }
+      const xml = await requestText(discovered.url, feedAccept, fetcher, options.timeoutMs ?? 15_000);
+      return parseFeed(xml, { ...source, url: discovered.url, type: discovered.type }, fetchedAt);
+    }
+  }, sleep);
 }
