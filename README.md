@@ -35,10 +35,16 @@ node bin/feed-reader.js items --db ./feed-reader.sqlite --json
 node bin/feed-reader.js status --db ./feed-reader.sqlite --json
 ```
 
-Run the complete test suite with enforced 100% line, branch, and function coverage:
+Run the complete test suite on any supported Node.js version:
 
 ```bash
 pnpm test
+```
+
+On Node.js 22 or newer, enforce 100% line, branch, and function coverage:
+
+```bash
+pnpm test:coverage
 ```
 
 ## Goals
