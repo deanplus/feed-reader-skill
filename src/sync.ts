@@ -1,11 +1,12 @@
 import type { FetchOptions } from "./feed.ts";
 import { fetchFeed } from "./feed.ts";
 import type { FeedDatabase } from "./database.ts";
-import type { FeedConfig, SyncResult } from "./types.ts";
+import type { FeedConfig, SourceConfig, SyncResult } from "./types.ts";
 
 export interface SyncOptions extends FetchOptions {
   project?: string;
   now?: () => Date;
+  onSource?: (source: SourceConfig, index: number, total: number) => void;
 }
 
 export async function syncFeeds(config: FeedConfig, database: FeedDatabase, options: SyncOptions = {}): Promise<SyncResult> {
@@ -13,7 +14,8 @@ export async function syncFeeds(config: FeedConfig, database: FeedDatabase, opti
   const now = options.now ?? (() => new Date());
   const result: SyncResult = { project, newItems: [], sources: [] };
 
-  for (const source of config.sources) {
+  for (const [index, source] of config.sources.entries()) {
+    options.onSource?.(source, index, config.sources.length);
     const fetchedAt = now();
     const baseline = !database.hasSuccessfulSync(project, source.id);
     try {

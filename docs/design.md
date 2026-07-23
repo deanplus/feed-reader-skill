@@ -115,7 +115,7 @@ feed-reader discover <url> [--json]
 feed-reader feeds import <file> [--project <name>] [--category <name>] [--config <file>] [--db <file>]
 feed-reader feeds list [--project <name>] [--db <file>] [--json]
 feed-reader feeds remove <source-id> [--project <name>] [--db <file>] [--json]
-feed-reader sync [--project <name>] [--config <file>] [--db <file>] [--json]
+feed-reader sync [--project <name>] [--config <file>] [--db <file>] [--json] [--no-items]
 feed-reader items [--project <name>] [--source <id>] [--category <name>] [--since <duration>] [--config <file>] [--db <file>] [--json]
 feed-reader items ingest --source <id> [--project <name>] [--input <file>] [--db <file>]
 feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
@@ -151,7 +151,7 @@ A normalized item contains at least:
 
 `method` is one of `rss`, `web`, or `browser`. Optional source fields must remain optional rather than being filled with invented data.
 
-Sync output must include the effective project, new items, per-source status, and errors so callers can distinguish partial success from complete failure.
+Sync output includes the effective project, new items, per-source status, and errors so callers can distinguish partial success from complete failure. With `--no-items`, it returns `newItemCount` instead of the complete items; callers then use `items` to read content. Per-source progress is written to stderr.
 
 ## 7. Source status
 
@@ -217,5 +217,6 @@ Before publication, verify at least:
 - Project isolation with the same source in two projects.
 - Four-attempt retry behavior without aborting other sources.
 - JSON stdout remains parseable when a source fails.
+- Sync progress stays on stderr and `--no-items` omits complete item payloads.
 - Browser-ingested items deduplicate against later runs.
 - Skill list and summary requests produce different presentations from the same stored items.

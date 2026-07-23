@@ -287,10 +287,13 @@ test("runCli syncs, lists, filters, and reports status", async () => {
 
   run = 1;
   const incremental = capture();
-  assert.equal(await runCli(["sync", "--config", config, "--db", database, "--json"], {
+  assert.equal(await runCli(["sync", "--config", config, "--db", database, "--json", "--no-items"], {
     io: incremental.io, fetcher, now,
   }), 0);
-  assert.equal(JSON.parse(incremental.stdout).newItems[0].title, "New");
+  const syncResult = JSON.parse(incremental.stdout);
+  assert.equal(syncResult.newItemCount, 1);
+  assert.equal("newItems" in syncResult, false);
+  assert.equal(incremental.stderr, "[1/1] Syncing source\n");
 
   const items = capture();
   assert.equal(await runCli(["items", "--config", config, "--db", database, "--source", "source", "--category", "AI", "--since", "3d", "--json"], {

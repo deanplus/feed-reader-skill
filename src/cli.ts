@@ -23,7 +23,7 @@ const usage = `Usage:
   feed-reader feeds import <file> [--project <name>] [--category <name>] [--config <file>] [--db <file>] [--json]
   feed-reader feeds list [--project <name>] [--db <file>] [--json]
   feed-reader feeds remove <source-id> [--project <name>] [--db <file>] [--json]
-  feed-reader sync [--project <name>] [--config <file>] [--db <file>] [--json]
+  feed-reader sync [--project <name>] [--config <file>] [--db <file>] [--json] [--no-items]
   feed-reader items [--project <name>] [--source <id>] [--category <name>] [--since <duration>] [--config <file>] [--db <file>] [--json]
   feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
 `;
@@ -138,6 +138,7 @@ export async function runCli(argv: string[], options: CliOptions = {}): Promise<
         category: { type: "string" },
         since: { type: "string" },
         json: { type: "boolean" },
+        "no-items": { type: "boolean" },
       },
     });
     if (command === "discover") {
@@ -214,9 +215,13 @@ export async function runCli(argv: string[], options: CliOptions = {}): Promise<
           fetcher: options.fetcher,
           sleep: options.sleep,
           now: options.now,
+          onSource: (source, index, total) => io.stderr(`[${index + 1}/${total}] Syncing ${source.id}\n`),
         });
         const errors = result.sources.filter((source) => source.status === "error").length;
-        print(io, values.json, result, `Synced ${result.sources.length} sources; ${result.newItems.length} new items; ${errors} errors.`);
+        const output = values["no-items"] === true
+          ? { project: result.project, newItemCount: result.newItems.length, sources: result.sources }
+          : result;
+        print(io, values.json, output, `Synced ${result.sources.length} sources; ${result.newItems.length} new items; ${errors} errors.`);
         return errors === result.sources.length && errors > 0 ? 1 : 0;
       }
 

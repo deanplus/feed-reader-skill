@@ -118,10 +118,12 @@ Agents and applications can use the implemented core CLI directly:
 feed-reader discover https://example.com/blog --json
 feed-reader feeds import subscriptions.opml --project daily-ai --json
 feed-reader feeds list --project daily-ai --json
-feed-reader sync --project daily-ai
+feed-reader sync --project daily-ai --json --no-items
 feed-reader items --project daily-ai --category AI --since 24h --json
 feed-reader status --project daily-ai --json
 ```
+
+`sync` reports each source to stderr as it starts. Use `--no-items` with JSON output to return only the new-item count and per-source results; call `items` when content is needed.
 
 `--project` and `--category` are optional:
 

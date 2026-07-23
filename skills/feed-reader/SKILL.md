@@ -52,10 +52,12 @@ Add the discovered feed to a native JSON import file, then register it. If no fe
 Run sync before answering an update request:
 
 ```bash
-feed-reader sync --project <name> --json
+feed-reader sync --project <name> --json --no-items
 ```
 
 Use `sync --config <feed-reader.json>` when the caller supplied a portable config that has not been registered.
+
+Prefer `--no-items` for agent syncs: progress is written to stderr, while stdout stays compact and machine-readable. Fetch content afterward with `items`.
 
 The first successful sync establishes a baseline, so `newItems` is empty even though stored items may exist. Use `items` when the user asks to inspect that baseline or stored history:
 

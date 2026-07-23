@@ -118,10 +118,12 @@ Agent 和应用也可以直接使用 CLI：
 feed-reader discover https://example.com/blog --json
 feed-reader feeds import subscriptions.opml --project daily-ai --json
 feed-reader feeds list --project daily-ai --json
-feed-reader sync --project daily-ai
+feed-reader sync --project daily-ai --json --no-items
 feed-reader items --project daily-ai --category AI --since 24h --json
 feed-reader status --project daily-ai --json
 ```
+
+`sync` 开始处理每个来源时会把进度写入 stderr。JSON 输出可加 `--no-items`，只返回新增数量和逐源结果；需要内容时再调用 `items`。
 
 `--project` 和 `--category` 都是可选参数：
 
