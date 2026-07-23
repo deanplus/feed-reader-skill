@@ -4,7 +4,7 @@
 
 Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin agent skill.
 
-> Status: the deterministic CLI and thin agent skill are implemented for RSS, Atom, feed discovery, OPML import, configured listing pages, browser fallback, and caller-generated summaries.
+> Status: the deterministic CLI and thin agent skill support RSS, Atom, feed discovery, project source registration, configured listing pages, browser fallback, and caller-generated summaries.
 
 ## Install the Skill
 
@@ -52,10 +52,11 @@ pnpm install
 pnpm build
 ```
 
-Create `feed-reader.json`:
+Create `feed-reader.json` and register it under a project:
 
 ```json
 {
+  "project": "example",
   "sources": [
     {
       "id": "example",
@@ -66,12 +67,13 @@ Create `feed-reader.json`:
 }
 ```
 
-Run the first sync to establish a baseline, then inspect stored items and source status:
+Run the first sync to establish a baseline, then inspect stored items and source status without re-reading the JSON file:
 
 ```bash
-node bin/feed-reader.js sync --db ./feed-reader.sqlite
-node bin/feed-reader.js items --db ./feed-reader.sqlite --json
-node bin/feed-reader.js status --db ./feed-reader.sqlite --json
+node bin/feed-reader.js feeds import feed-reader.json --db ./feed-reader.sqlite --json
+node bin/feed-reader.js sync --project example --db ./feed-reader.sqlite
+node bin/feed-reader.js items --project example --db ./feed-reader.sqlite --json
+node bin/feed-reader.js status --project example --db ./feed-reader.sqlite --json
 ```
 
 Run the complete test suite on any supported Node.js version:
@@ -114,7 +116,8 @@ Agents and applications can use the implemented core CLI directly:
 
 ```bash
 feed-reader discover https://example.com/blog --json
-feed-reader feeds import subscriptions.opml --config feed-reader.json --json
+feed-reader feeds import subscriptions.opml --project daily-ai --json
+feed-reader feeds list --project daily-ai --json
 feed-reader sync --project daily-ai
 feed-reader items --project daily-ai --category AI --since 24h --json
 feed-reader status --project daily-ai --json
@@ -122,11 +125,27 @@ feed-reader status --project daily-ai --json
 
 `--project` and `--category` are optional:
 
-- Project resolution is: explicit option, config value, then `default`.
-- An agent working in a repository should use a stable repository-based project name and persist it in config.
+- `feeds import` accepts OPML or native JSON and registers complete source definitions in SQLite.
+- Project resolution during import is: explicit option, JSON config value, then `default`.
+- `sync --project <name>` loads registered sources from SQLite and does not require a config file.
 - Categories come from OPML groups, JSON configuration, or explicit user input.
 - Missing categories remain unclassified; the tool does not ask or guess.
-- Config resolution is: explicit `--config`, then `feed-reader.json` in the current directory.
+- `sync --config <file>` remains available for portable, reviewable file-based runs.
+- Without `--project` or `--config`, the CLI uses `feed-reader.json` in the current directory, then the registered `default` project.
+
+After `feeds list` confirms the import, the JSON file is no longer required at runtime; keep it only when you want a reviewable backup.
+
+Importing OPML into a JSON file instead of the SQLite registry remains supported explicitly:
+
+```bash
+feed-reader feeds import subscriptions.opml --config feed-reader.json --json
+```
+
+Removing a registered source stops future syncs but keeps stored items and historical state:
+
+```bash
+feed-reader feeds remove example --project daily-ai --json
+```
 
 ## Output modes
 
@@ -176,7 +195,7 @@ The package will not bundle Playwright or attempt to infer arbitrary website lay
 ## Architecture
 
 - A TypeScript package and CLI perform deterministic fetching, parsing, deduplication, and persistence.
-- SQLite stores runtime state and items; reviewable JSON files remain the source configuration.
+- SQLite stores registered source definitions, runtime state, and items. JSON remains an optional portable configuration.
 - A thin skill translates natural-language requests into CLI calls and handles optional browser fallback and summarization.
 
 See [docs/design.md](docs/design.md) for the current requirements and implementation contract.
@@ -189,6 +208,7 @@ See [docs/design.md](docs/design.md) for the current requirements and implementa
 4. **Complete:** extract static listing pages with explicit CSS selectors and store normalized `web` items.
 5. **Complete:** add the thin agent skill for natural-language invocation, list/summary selection, and browser fallback.
 6. **Complete:** validate RSS discovery, OPML import, selector extraction, Node.js 20 compatibility, Skill packaging, and npm contents before publishing `v0.1.0`.
+7. **Complete:** register project sources in SQLite so agents can import once and later sync by project from any directory.
 
 ## License
 

@@ -83,6 +83,43 @@ test("FeedDatabase persists state, deduplicates, filters, and sorts", async () =
   database.close();
 });
 
+test("FeedDatabase registers sources without deleting their history", () => {
+  const database = new FeedDatabase(":memory:");
+  const sources: FeedConfig["sources"] = [{
+    id: "feed",
+    url: "https://example.com/feed",
+    type: "rss",
+    categories: ["AI"],
+  }, {
+    id: "blog",
+    url: "https://example.com/blog",
+    type: "web",
+    categories: ["Tech"],
+    selectors: { item: "article", title: "h2", link: "a" },
+  }];
+
+  database.upsertSources("project", sources);
+  assert.deepEqual(database.listSources("project"), [sources[1], sources[0]]);
+  assert.deepEqual(database.listSources("other"), []);
+  assert.deepEqual(database.listSourceStatuses("project", sources), [{
+    sourceId: "blog",
+    url: "https://example.com/blog",
+    status: "pending",
+  }, {
+    sourceId: "feed",
+    url: "https://example.com/feed",
+    status: "pending",
+  }]);
+
+  database.recordSuccess("project", "feed", sources[0].url, "2026-07-23T00:00:00.000Z");
+  assert.equal(database.listSourceStatuses("project", sources)[1]?.status, "ok");
+  assert.equal(database.removeSource("project", "feed"), true);
+  assert.equal(database.removeSource("project", "feed"), false);
+  assert.deepEqual(database.listSources("project"), [sources[1]]);
+  assert.equal(database.listStatuses("project")[0]?.sourceId, "feed");
+  database.close();
+});
+
 test("syncFeeds establishes a baseline, returns later items, and isolates failures", async () => {
   const database = new FeedDatabase(":memory:");
   const config: FeedConfig = {

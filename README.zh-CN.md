@@ -4,7 +4,7 @@
 
 通过 TypeScript CLI 和轻量 Agent Skill 读取 RSS、Atom，以及没有 Feed 的网站。
 
-> 状态：确定性的 CLI 和轻量 Skill 已支持 RSS、Atom、Feed 自动发现、OPML 导入、配置式列表页抓取、浏览器兜底，以及由调用方生成摘要。
+> 状态：确定性的 CLI 和轻量 Skill 已支持 RSS、Atom、Feed 自动发现、项目源注册、配置式列表页抓取、浏览器兜底，以及由调用方生成摘要。
 
 ## 安装 Skill
 
@@ -52,10 +52,11 @@ pnpm install
 pnpm build
 ```
 
-创建 `feed-reader.json`：
+创建 `feed-reader.json`，并将它注册到一个项目：
 
 ```json
 {
+  "project": "example",
   "sources": [
     {
       "id": "example",
@@ -66,12 +67,13 @@ pnpm build
 }
 ```
 
-第一次同步会建立 baseline。随后可以查看已保存的内容和来源状态：
+第一次同步会建立 baseline。之后无需再次读取 JSON 文件即可查看已保存的内容和来源状态：
 
 ```bash
-node bin/feed-reader.js sync --db ./feed-reader.sqlite
-node bin/feed-reader.js items --db ./feed-reader.sqlite --json
-node bin/feed-reader.js status --db ./feed-reader.sqlite --json
+node bin/feed-reader.js feeds import feed-reader.json --db ./feed-reader.sqlite --json
+node bin/feed-reader.js sync --project example --db ./feed-reader.sqlite
+node bin/feed-reader.js items --project example --db ./feed-reader.sqlite --json
+node bin/feed-reader.js status --project example --db ./feed-reader.sqlite --json
 ```
 
 在所有支持的 Node.js 版本上运行完整测试：
@@ -114,7 +116,8 @@ Agent 和应用也可以直接使用 CLI：
 
 ```bash
 feed-reader discover https://example.com/blog --json
-feed-reader feeds import subscriptions.opml --config feed-reader.json --json
+feed-reader feeds import subscriptions.opml --project daily-ai --json
+feed-reader feeds list --project daily-ai --json
 feed-reader sync --project daily-ai
 feed-reader items --project daily-ai --category AI --since 24h --json
 feed-reader status --project daily-ai --json
@@ -122,11 +125,27 @@ feed-reader status --project daily-ai --json
 
 `--project` 和 `--category` 都是可选参数：
 
-- project 的解析顺序为：显式参数、配置文件中的值、`default`。
-- Agent 在仓库中工作时，应使用稳定的仓库名称作为 project，并将其保存到配置中。
+- `feeds import` 接受 OPML 或原生 JSON，并把完整来源定义注册到 SQLite。
+- 导入时 project 的解析顺序为：显式参数、JSON 配置值、`default`。
+- `sync --project <name>` 直接从 SQLite 读取注册源，不需要配置文件。
 - category 来自 OPML 分组、JSON 配置或用户的显式输入。
 - 没有 category 时保持未分类；工具不会追问或猜测。
-- 配置文件的解析顺序为：显式 `--config`，然后是当前目录的 `feed-reader.json`。
+- `sync --config <file>` 继续支持便携、可审查的文件模式。
+- 没有 `--project` 或 `--config` 时，CLI 先读取当前目录的 `feed-reader.json`，否则使用已注册的 `default` 项目。
+
+通过 `feeds list` 确认导入后，运行时不再需要该 JSON；只有需要可审查备份时才保留。
+
+如果只想把 OPML 转换或合并到 JSON，而不注册进 SQLite，可以显式提供 `--config`：
+
+```bash
+feed-reader feeds import subscriptions.opml --config feed-reader.json --json
+```
+
+删除注册源会停止后续同步，但保留历史内容和状态：
+
+```bash
+feed-reader feeds remove example --project daily-ai --json
+```
 
 ## 输出模式
 
@@ -176,7 +195,7 @@ Package 不会内置 Playwright，也不会尝试猜测任意网站的页面结�
 ## 架构
 
 - TypeScript Package 和 CLI 负责确定性的抓取、解析、去重和持久化。
-- SQLite 保存运行状态和内容；可审查的 JSON 文件仍是来源配置。
+- SQLite 保存注册源、运行状态和内容；JSON 保留为可选的便携配置。
 - 轻量 Skill 将自然语言转换为 CLI 调用，并处理可选的浏览器兜底和摘要生成。
 
 当前需求和实现约定见 [设计文档](docs/design.md)。
@@ -189,6 +208,7 @@ Package 不会内置 Playwright，也不会尝试猜测任意网站的页面结�
 4. **已完成：** 使用显式 CSS selectors 抽取静态列表页并保存标准化的 `web` 内容。
 5. **已完成：** 添加轻量 Agent Skill，支持自然语言调用、列表/摘要选择和浏览器兜底。
 6. **已完成：** 在发布 `v0.1.0` 前验证 RSS 发现、OPML 导入、selector 抽取、Node.js 20 兼容性、Skill 打包和 npm 内容。
+7. **已完成：** 将项目来源注册到 SQLite，使 Agent 只需导入一次，之后可从任意目录按 project 同步。
 
 ## 许可证
 

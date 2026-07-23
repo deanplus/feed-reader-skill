@@ -35,14 +35,15 @@ The implemented core loop baselines every item returned by the feed. An explicit
 
 ### State
 
-Use one SQLite database with project-scoped keys. The minimum storage is:
+Use one SQLite database with project-scoped keys. The storage is:
 
+- `sources`, unique by `(project, source_key)` and `(project, url)`.
 - `source_state`, unique by `(project, source_key)`.
 - `items`, unique by `(project, source_key, dedupe_key)`.
 
 This deliberately permits duplicated item storage when the same source is used by multiple projects. A shared global article cache is deferred until duplication becomes a measured problem.
 
-Feed definitions remain in reviewable JSON configuration rather than becoming SQLite-only state.
+Registered projects use SQLite source definitions at runtime. Reviewable JSON remains a portable import and explicit sync format rather than a required working-directory file.
 
 Use a platform-appropriate application data directory for the default database. Allow `--db <file>` when callers need a portable or physically isolated database.
 
@@ -62,17 +63,19 @@ CLI project resolution:
 Skill project resolution:
 
 1. Use a project explicitly supplied by the user.
-2. Reuse the project already stored in configuration.
-3. In a repository, derive a stable name from the repository and persist it in configuration.
+2. Reuse an already registered project or a project stored in configuration.
+3. In a repository, derive a stable name from the repository and register it.
 4. Otherwise omit the option and let the CLI use `default`.
 
 The skill should not ask the user for a missing project or category. It may add a category only when the user supplied it, the imported source carries it, or an existing project taxonomy defines it. Temporary semantic classification does not mutate source configuration.
 
 ## 4. Configuration and imports
 
-The first version imports OPML into the native JSON configuration format. CSV, a second JSON import format, and remote account synchronization are out of scope.
+The CLI imports OPML or native JSON into the SQLite source registry. CSV, a second JSON format, and remote account synchronization are out of scope.
 
-Resolve configuration from an explicit `--config <file>` and then `feed-reader.json` in the current directory. `feeds import` creates or merges that file unless another path is supplied.
+`sync --project <name>` reads registered sources from SQLite. Explicit `sync --config <file>` uses portable file mode. With neither option, resolve `feed-reader.json` in the current directory and then the registered `default` project.
+
+For compatibility, `feeds import <opml> --config <file>` converts or merges OPML into native JSON instead of registering it.
 
 Configuration shape:
 
@@ -109,14 +112,16 @@ Import behavior:
 
 ```bash
 feed-reader discover <url> [--json]
-feed-reader feeds import <file> [--project <name>] [--category <name>] [--config <file>]
+feed-reader feeds import <file> [--project <name>] [--category <name>] [--config <file>] [--db <file>]
+feed-reader feeds list [--project <name>] [--db <file>] [--json]
+feed-reader feeds remove <source-id> [--project <name>] [--db <file>] [--json]
 feed-reader sync [--project <name>] [--config <file>] [--db <file>] [--json]
 feed-reader items [--project <name>] [--source <id>] [--category <name>] [--since <duration>] [--config <file>] [--db <file>] [--json]
 feed-reader items ingest --source <id> [--project <name>] [--input <file>] [--db <file>]
 feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
 ```
 
-`discover`, `feeds import` for OPML, `sync`, `items`, and `status` are implemented. `items ingest` remains planned.
+`discover`, `feeds import` for OPML and JSON, `feeds list`, `feeds remove`, `sync`, `items`, and `status` are implemented. `items ingest` remains planned.
 
 For configured web extraction, `item`, `title`, and `link` selectors are required. `date` and `summary` are optional. `type: "auto"` tries a direct feed and declared feed metadata before selectors; `type: "web"` skips feed discovery and reads the listing page directly. A page with no matching or valid items is an error rather than a verified empty update.
 
@@ -152,6 +157,7 @@ Sync output must include the effective project, new items, per-source status, an
 
 The package and skill must preserve these distinctions:
 
+- Source is registered but has not completed its first sync (`pending`).
 - Feed fetched successfully.
 - Feed failed but its normal web page is accessible.
 - Web page was checked and has no new items.
@@ -205,6 +211,8 @@ Before publication, verify at least:
 - Feed discovery from an HTML page.
 - Selector-based extraction from a static page.
 - OPML category import and duplicate merging.
+- Idempotent source registration and project-only sync without a config file.
+- Removing a registered source stops future syncs and status output without deleting stored items.
 - First-run baseline and subsequent incremental results.
 - Project isolation with the same source in two projects.
 - Four-attempt retry behavior without aborting other sources.

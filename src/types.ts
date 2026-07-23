@@ -54,7 +54,7 @@ export interface SyncResult {
 export interface SourceStatus {
   sourceId: string;
   url: string;
-  status: "ok" | "error";
+  status: "pending" | "ok" | "error";
   lastSuccessAt?: string;
   lastFailureAt?: string;
   error?: string;

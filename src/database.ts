@@ -2,7 +2,15 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import Database from "better-sqlite3";
-import type { NormalizedItem, SourceStatus } from "./types.ts";
+import type { NormalizedItem, SourceConfig, SourceStatus } from "./types.ts";
+
+interface SourceRow {
+  source_id: string;
+  url: string;
+  type: SourceConfig["type"];
+  categories: string;
+  selectors: string | null;
+}
 
 interface SourceStateRow {
   source_id: string;
@@ -69,6 +77,16 @@ export class FeedDatabase {
         last_error TEXT,
         PRIMARY KEY (project, source_id)
       );
+      CREATE TABLE IF NOT EXISTS sources (
+        project TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        url TEXT NOT NULL,
+        type TEXT NOT NULL,
+        categories TEXT NOT NULL,
+        selectors TEXT,
+        PRIMARY KEY (project, source_id),
+        UNIQUE (project, url)
+      );
       CREATE TABLE IF NOT EXISTS items (
         project TEXT NOT NULL,
         source_id TEXT NOT NULL,
@@ -94,6 +112,52 @@ export class FeedDatabase {
       SELECT last_success_at FROM source_state WHERE project = ? AND source_id = ?
     `).get(project, sourceId) as { last_success_at: string | null } | undefined;
     return row?.last_success_at !== null && row?.last_success_at !== undefined;
+  }
+
+  upsertSources(project: string, sources: SourceConfig[]): void {
+    const upsert = this.#database.prepare(`
+      INSERT INTO sources (project, source_id, url, type, categories, selectors)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(project, source_id) DO UPDATE SET
+        url = excluded.url,
+        type = excluded.type,
+        categories = excluded.categories,
+        selectors = excluded.selectors
+    `);
+    this.#database.transaction((values: SourceConfig[]) => {
+      for (const source of values) {
+        upsert.run(
+          project,
+          source.id,
+          source.url,
+          source.type,
+          JSON.stringify(source.categories),
+          source.selectors === undefined ? null : JSON.stringify(source.selectors),
+        );
+      }
+    })(sources);
+  }
+
+  listSources(project: string): SourceConfig[] {
+    const rows = this.#database.prepare(`
+      SELECT source_id, url, type, categories, selectors
+      FROM sources
+      WHERE project = ?
+      ORDER BY source_id
+    `).all(project) as SourceRow[];
+    return rows.map((row) => ({
+      id: row.source_id,
+      url: row.url,
+      type: row.type,
+      categories: JSON.parse(row.categories) as string[],
+      ...(row.selectors === null ? {} : { selectors: JSON.parse(row.selectors) as SourceConfig["selectors"] }),
+    }));
+  }
+
+  removeSource(project: string, sourceId: string): boolean {
+    return this.#database.prepare(`
+      DELETE FROM sources WHERE project = ? AND source_id = ?
+    `).run(project, sourceId).changes === 1;
   }
 
   recordSuccess(project: string, sourceId: string, url: string, at: string): void {
@@ -192,5 +256,17 @@ export class FeedDatabase {
       ...(row.last_failure_at === null ? {} : { lastFailureAt: row.last_failure_at }),
       ...(row.last_error === null ? {} : { error: row.last_error }),
     }));
+  }
+
+  listSourceStatuses(project: string, sources: SourceConfig[]): SourceStatus[] {
+    const states = new Map(this.listStatuses(project).map((status) => [status.sourceId, status]));
+    return [...sources]
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((source) => {
+        const state = states.get(source.id);
+        return state === undefined
+          ? { sourceId: source.id, url: source.url, status: "pending" }
+          : { ...state, url: source.url };
+      });
   }
 }

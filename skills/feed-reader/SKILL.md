@@ -15,12 +15,12 @@ Use the repository CLI for deterministic discovery, fetching, deduplication, and
 
 Do not recreate the CLI logic inside the skill or install repository dependencies without authorization.
 
-Use an existing config when one is provided. Otherwise use `feed-reader.json` in the working directory.
+Prefer a registered project when one is established. Use an explicit config for portable file-based runs.
 
 Treat project and category as optional:
 
-- Reuse an explicit project or the config's project.
-- In a repository, persist a stable repository-based project when separate state is useful.
+- Reuse an explicit or already registered project.
+- In a repository, register a stable repository-based project when separate state is useful.
 - Otherwise let the CLI use `default`; do not ask the user merely to obtain a project name.
 - Preserve imported or configured categories. Do not invent or persist semantic categories unless the user requests them.
 
@@ -28,13 +28,16 @@ In the commands below, replace `feed-reader` with the resolved CLI form when nec
 
 ## Import or add sources
 
-Import OPML groups as categories:
+Register OPML groups or native JSON sources in SQLite:
 
 ```bash
-feed-reader feeds import <subscriptions.opml> --config <feed-reader.json> --json
+feed-reader feeds import <file> --project <name> --json
+feed-reader feeds list --project <name> --json
 ```
 
 Add `--project` or `--category` only when supplied or clearly established.
+
+Use `--config <feed-reader.json>` with `feeds import` only when the user explicitly wants OPML converted into a portable JSON file instead of registered sources.
 
 For a normal page URL, run:
 
@@ -42,24 +45,32 @@ For a normal page URL, run:
 feed-reader discover <url> --json
 ```
 
-Add the discovered feed to the JSON config. If no feed is declared, inspect the static page and configure stable `item`, `title`, and `link` CSS selectors; add optional `date` and `summary` selectors only when present. Use `type: "auto"` to retain feed-first behavior or `type: "web"` to read the listing directly. Never infer a generic layout without checking the page.
+Add the discovered feed to a native JSON import file, then register it. If no feed is declared, inspect the static page and configure stable `item`, `title`, and `link` CSS selectors; add optional `date` and `summary` selectors only when present. Use `type: "auto"` to retain feed-first behavior or `type: "web"` to read the listing directly. Never infer a generic layout without checking the page.
 
 ## Sync and read
 
 Run sync before answering an update request:
 
 ```bash
-feed-reader sync --config <feed-reader.json> --json
+feed-reader sync --project <name> --json
 ```
+
+Use `sync --config <feed-reader.json>` when the caller supplied a portable config that has not been registered.
 
 The first successful sync establishes a baseline, so `newItems` is empty even though stored items may exist. Use `items` when the user asks to inspect that baseline or stored history:
 
 ```bash
-feed-reader items --config <feed-reader.json> --since 24h --json
-feed-reader status --config <feed-reader.json> --json
+feed-reader items --project <name> --since 24h --json
+feed-reader status --project <name> --json
 ```
 
 Add deterministic `--project`, `--source`, or `--category` filters when needed. Inspect every per-source sync result; one source may fail while others succeed.
+
+Remove a registered source only when requested. Removal stops future syncs but preserves stored items and historical state:
+
+```bash
+feed-reader feeds remove <source-id> --project <name> --json
+```
 
 ## Present results
 
