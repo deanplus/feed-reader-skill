@@ -4,7 +4,7 @@
 
 通过 TypeScript CLI 和轻量 Agent Skill 读取 RSS、Atom，以及没有 Feed 的网站。
 
-> 状态：确定性的 CLI 和轻量 Skill 已支持 RSS、Atom、Feed 自动发现、项目源注册、配置式列表页抓取、浏览器兜底，以及由调用方生成摘要。
+> 状态：确定性的 CLI 和轻量 Skill 已支持 RSS、Atom、Feed 自动发现、项目源注册、配置式列表页抓取、已识别的 WAF 验证、浏览器兜底，以及由调用方生成摘要。
 
 ## 安装 Skill
 
@@ -93,6 +93,7 @@ pnpm test:coverage
 - 读取 RSS 和 Atom Feed。
 - 自动发现普通网页声明的 Feed。
 - 通过配置的 CSS selectors 读取没有 Feed 的网站。
+- 使用隔离的系统 Chrome 会话自动完成已识别的 JavaScript 工作量证明验证。
 - 直接抓取无法验证网站时，让 Agent 使用浏览器兜底。
 - 使用 SQLite 跟踪增量内容和来源健康状态。
 - 调用方需要时，通过 project 隔离状态。
@@ -189,10 +190,11 @@ Package 始终提供确定性的标准化内容，不依赖任何 AI 服务。
 
 1. 从页面元数据发现 RSS 或 Atom。
 2. 没有 Feed 时使用配置的 CSS selectors。
-3. 让调用 Agent 使用浏览器检查页面。
-4. 页面仍无法确认时返回 `unverified`。
+3. 使用隔离的系统 Chrome 会话完成已识别的 `waf_pow` 验证。
+4. 登录、CAPTCHA 或其他动态页面仍无法处理时，让调用 Agent 使用浏览器检查。
+5. 页面仍无法确认时返回 `unverified`。
 
-Package 不会内置 Playwright，也不会尝试猜测任意网站的页面结构。
+Package 包含 `playwright-core`，但不捆绑浏览器二进制，也不读取用户的 Chrome profile。验证 Cookie 仅保存在内存中，主机需已安装 Google Chrome。Package 不会猜测任意网站的页面结构，也不会绕过未支持的 CAPTCHA。
 
 ## 架构
 
@@ -211,6 +213,7 @@ Package 不会内置 Playwright，也不会尝试猜测任意网站的页面结�
 5. **已完成：** 添加轻量 Agent Skill，支持自然语言调用、列表/摘要选择和浏览器兜底。
 6. **已完成：** 在发布 `v0.1.0` 前验证 RSS 发现、OPML 导入、selector 抽取、Node.js 20 兼容性、Skill 打包和 npm 内容。
 7. **已完成：** 将项目来源注册到 SQLite，使 Agent 只需导入一次，之后可从任意目录按 project 同步。
+8. **已完成：** 无需共享用户浏览器 Cookie，自动抓取受已识别 `waf_pow` 验证保护的 Feed。
 
 ## 许可证
 

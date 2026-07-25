@@ -1,6 +1,6 @@
 # Feed Reader Design
 
-This document records the agreed first-version scope. The deterministic CLI and thin skill described below are implemented, including selector-based websites and browser fallback. Persisting browser-extracted items remains planned.
+This document records the implemented product boundary. The deterministic CLI and thin skill include selector-based websites, recognized WAF challenge handling, and agent browser fallback. Persisting agent-browser-extracted items remains planned.
 
 ## 1. Product boundary
 
@@ -20,7 +20,7 @@ The skill must call the CLI rather than duplicate its implementation. It does no
 - Support explicitly configured CSS selectors for sites without feeds.
 - Store only summaries or content directly present in the feed or listing page.
 - Do not fetch every article for full-text extraction.
-- Do not embed Playwright.
+- Do not bundle a browser binary or use the user's browser profile.
 - Do not attempt generic article-list inference for arbitrary sites.
 
 ### Fetching
@@ -30,6 +30,7 @@ The skill must call the CLI rather than duplicate its implementation. It does no
 - Establish a baseline on the first sync instead of reporting all history as new.
 - Allow an explicit history limit when creating the baseline.
 - Never disable a source from a single transient failure.
+- Use an isolated system Chrome session only for recognized `waf_pow` challenges, keep its cookies in memory, and fail closed for unsupported CAPTCHA or login flows.
 
 The implemented core loop baselines every item returned by the feed. An explicit first-run history limit remains planned.
 
@@ -184,6 +185,7 @@ The package does not depend on an AI model or API key.
 - Use TypeScript.
 - Use `better-sqlite3` rather than requiring the newer built-in SQLite API.
 - Prefer built-in `fetch` and existing platform features before adding dependencies.
+- Load `playwright-core` only after a recognized WAF response and require a host-installed Google Chrome.
 - Keep the CLI and public TypeScript API on the same underlying functions.
 
 The first public package version is `0.1.0` under the unscoped name `feed-reader-skill`.
@@ -218,5 +220,6 @@ Before publication, verify at least:
 - Four-attempt retry behavior without aborting other sources.
 - JSON stdout remains parseable when a source fails.
 - Sync progress stays on stderr and `--no-items` omits complete item payloads.
+- A recognized `waf_pow` challenge can fetch the original feed without reading or persisting the user's browser cookies.
 - Browser-ingested items deduplicate against later runs.
 - Skill list and summary requests produce different presentations from the same stored items.

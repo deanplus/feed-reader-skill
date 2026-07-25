@@ -1,6 +1,6 @@
 {
   "name": "feed-reader-skill",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Read RSS, Atom, and configured web feeds through a TypeScript CLI and agent skill.",
   "type": "module",
   "repository": {
@@ -41,7 +41,8 @@
   "dependencies": {
     "better-sqlite3": "^12.10.0",
     "cheerio": "^1.1.2",
-    "fast-xml-parser": "^5.3.6"
+    "fast-xml-parser": "^5.3.6",
+    "playwright-core": "^1.62.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

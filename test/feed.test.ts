@@ -126,6 +126,40 @@ test("fetchFeed throws the final failure", async () => {
   assert.equal(calls, 4);
 });
 
+test("fetchFeed completes recognized WAF challenges without retrying browser failures", async () => {
+  const wafSource = {
+    ...source,
+    url: "https://example.com/forum.php?mod=rss&fid=81&auth=0",
+  };
+  const requested: string[] = [];
+  const result = await fetchFeed(wafSource, fetchedAt, {
+    fetcher: async (input) => {
+      requested.push(String(input));
+      return new Response("challenge", { headers: { "x-waf-action": "challenge" } });
+    },
+    challengeFetcher: async (url, accept, timeoutMs) => {
+      assert.equal(url, "https://example.com/forum.php?mod=rss&fid=81");
+      assert.match(accept, /application\/rss\+xml/);
+      assert.equal(timeoutMs, 321);
+      return "<rss><channel><item><title>Protected</title><link>https://example.com/protected</link></item></channel></rss>";
+    },
+    timeoutMs: 321,
+  });
+  assert.deepEqual(requested, ["https://example.com/forum.php?mod=rss&fid=81"]);
+  assert.equal(result[0]?.title, "Protected");
+
+  let challengeCalls = 0;
+  await assert.rejects(fetchFeed(wafSource, fetchedAt, {
+    fetcher: async () => new Response("blocked", { status: 403, headers: { "x-waf-action": "block" } }),
+    challengeFetcher: async () => {
+      challengeCalls += 1;
+      throw new Error("Chrome unavailable");
+    },
+    sleep: async () => assert.fail("fatal browser failures must not retry"),
+  }), /Cannot complete browser challenge.*Chrome unavailable/);
+  assert.equal(challengeCalls, 1);
+});
+
 test("fetchFeed uses its default delay function", async () => {
   let calls = 0;
   const items = await fetchFeed(source, fetchedAt, {

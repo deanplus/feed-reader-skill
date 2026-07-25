@@ -4,7 +4,7 @@
 
 Read RSS, Atom, and websites without feeds through a TypeScript CLI and a thin agent skill.
 
-> Status: the deterministic CLI and thin agent skill support RSS, Atom, feed discovery, project source registration, configured listing pages, browser fallback, and caller-generated summaries.
+> Status: the deterministic CLI and thin agent skill support RSS, Atom, feed discovery, project source registration, configured listing pages, recognized WAF challenges, browser fallback, and caller-generated summaries.
 
 ## Install the Skill
 
@@ -93,6 +93,7 @@ pnpm test:coverage
 - Read RSS and Atom feeds.
 - Discover feeds declared by ordinary web pages.
 - Read sites without feeds through configured CSS selectors.
+- Automatically complete recognized JavaScript proof-of-work challenges with an isolated system Chrome session.
 - Let an agent use its browser when direct fetching cannot verify a site.
 - Track incremental items and source health in SQLite.
 - Keep state isolated when callers choose a project.
@@ -189,10 +190,11 @@ The fallback order is:
 
 1. Discover RSS or Atom metadata from the page.
 2. Use configured CSS selectors when no feed exists.
-3. Ask the calling agent to inspect the page with its browser.
-4. Return `unverified` when the page still cannot be confirmed.
+3. Complete a recognized `waf_pow` challenge with an isolated system Chrome session.
+4. Ask the calling agent to inspect unsupported login, CAPTCHA, or dynamic pages.
+5. Return `unverified` when the page still cannot be confirmed.
 
-The package will not bundle Playwright or attempt to infer arbitrary website layouts.
+The package includes `playwright-core` but does not bundle a browser binary or read the user's Chrome profile. Challenge cookies stay in memory and require Google Chrome installed on the host. It does not attempt to infer arbitrary website layouts or bypass unsupported CAPTCHA flows.
 
 ## Architecture
 
@@ -211,6 +213,7 @@ See [docs/design.md](docs/design.md) for the current requirements and implementa
 5. **Complete:** add the thin agent skill for natural-language invocation, list/summary selection, and browser fallback.
 6. **Complete:** validate RSS discovery, OPML import, selector extraction, Node.js 20 compatibility, Skill packaging, and npm contents before publishing `v0.1.0`.
 7. **Complete:** register project sources in SQLite so agents can import once and later sync by project from any directory.
+8. **Complete:** automatically fetch feeds protected by the recognized `waf_pow` challenge without sharing user browser cookies.
 
 ## License
 

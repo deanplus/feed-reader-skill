@@ -2,16 +2,24 @@ import { createHash } from "node:crypto";
 import { load } from "cheerio";
 import { XMLParser } from "fast-xml-parser";
 import type { DiscoveredFeed, NormalizedItem, SourceConfig } from "./types.ts";
+import { fetchWafProtectedText, normalizeWafUrl } from "./waf.ts";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+type ChallengeFetcher = (url: string, accept: string, timeoutMs: number) => Promise<string>;
 
 export interface FetchOptions {
+  challengeFetcher?: ChallengeFetcher;
   fetcher?: Fetcher;
   sleep?: (milliseconds: number) => Promise<void>;
   timeoutMs?: number;
 }
 
 const feedAccept = "application/atom+xml, application/rss+xml, application/xml, text/xml";
+
+class WafChallengeError extends Error {}
+class FatalFetchError extends Error {}
+const defaultChallengeFetcher: ChallengeFetcher = (url, accept, timeoutMs) =>
+  fetchWafProtectedText(url, accept, timeoutMs, {});
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -197,6 +205,9 @@ async function retry<T>(operation: () => Promise<T>, sleep: (milliseconds: numbe
       return await operation();
     } catch (error) {
       lastError = error;
+      if (error instanceof FatalFetchError) {
+        throw error;
+      }
       if (attempt < delays.length) {
         await sleep(delays[attempt]);
       }
@@ -213,10 +224,37 @@ async function requestText(url: string, accept: string, fetcher: Fetcher, timeou
     },
     signal: AbortSignal.timeout(timeoutMs),
   });
+  const wafAction = response.headers.get("x-waf-action");
+  if (wafAction === "block" || wafAction === "challenge") {
+    throw new WafChallengeError(wafAction);
+  }
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
   return response.text();
+}
+
+async function requestTextWithWaf(
+  url: string,
+  accept: string,
+  options: FetchOptions,
+): Promise<string> {
+  const target = normalizeWafUrl(url);
+  const timeoutMs = options.timeoutMs ?? 15_000;
+  try {
+    return await requestText(target, accept, options.fetcher ?? globalThis.fetch, timeoutMs);
+  } catch (error) {
+    if (!(error instanceof WafChallengeError)) {
+      throw error;
+    }
+    try {
+      return await (options.challengeFetcher ?? defaultChallengeFetcher)(target, accept, timeoutMs);
+    } catch (cause) {
+      throw new FatalFetchError(`Cannot complete browser challenge for ${target}: ${(cause as Error).message}`, {
+        cause,
+      });
+    }
+  }
 }
 
 export function discoverFeedsFromHtml(html: string, pageUrl: string): DiscoveredFeed[] {
@@ -258,22 +296,20 @@ export function discoverFeedsFromHtml(html: string, pageUrl: string): Discovered
 }
 
 export async function discoverFeeds(url: string, options: FetchOptions = {}): Promise<DiscoveredFeed[]> {
-  const fetcher = options.fetcher ?? globalThis.fetch;
   const sleep = options.sleep ?? defaultSleep;
   return retry(async () => {
-    const html = await requestText(url, "text/html, application/xhtml+xml", fetcher, options.timeoutMs ?? 15_000);
+    const html = await requestTextWithWaf(url, "text/html, application/xhtml+xml", options);
     return discoverFeedsFromHtml(html, url);
   }, sleep);
 }
 
 export async function fetchFeed(source: SourceConfig, fetchedAt: Date, options: FetchOptions = {}): Promise<NormalizedItem[]> {
-  const fetcher = options.fetcher ?? globalThis.fetch;
   const sleep = options.sleep ?? defaultSleep;
   return retry(async () => {
     const accept = source.type === "auto" || source.type === "web"
       ? `text/html, application/xhtml+xml, ${feedAccept}`
       : feedAccept;
-    const content = await requestText(source.url, accept, fetcher, options.timeoutMs ?? 15_000);
+    const content = await requestTextWithWaf(source.url, accept, options);
     if (source.type === "web") {
       return parseWebPage(content, source, fetchedAt);
     }
@@ -290,7 +326,7 @@ export async function fetchFeed(source: SourceConfig, fetchedAt: Date, options: 
         }
         throw new Error("No RSS or Atom feed discovered");
       }
-      const xml = await requestText(discovered.url, feedAccept, fetcher, options.timeoutMs ?? 15_000);
+      const xml = await requestTextWithWaf(discovered.url, feedAccept, options);
       return parseFeed(xml, { ...source, url: discovered.url, type: discovered.type }, fetchedAt);
     }
   }, sleep);

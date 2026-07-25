@@ -5,7 +5,7 @@ description: Discover, import, and incrementally read RSS, Atom, and configured 
 
 # Feed Reader
 
-Use the repository CLI for deterministic discovery, fetching, deduplication, and SQLite state. Keep semantic filtering, summaries, and browser fallback in the calling agent.
+Use the repository CLI for deterministic discovery, fetching, recognized WAF challenge handling, deduplication, and SQLite state. Keep semantic filtering, summaries, and unsupported browser fallback in the calling agent.
 
 ## Resolve the CLI and state
 
@@ -84,7 +84,9 @@ feed-reader feeds remove <source-id> --project <name> --json
 
 ## Use browser fallback
 
-Use an available agent browser only after direct discovery or sync cannot verify a source. Check the ordinary page and distinguish:
+Let the CLI handle recognized `waf_pow` challenges automatically with an isolated system Chrome session. It does not read the user's Chrome profile or persist challenge cookies.
+
+Use an available agent browser only after direct discovery or sync still cannot verify a source. Check the ordinary page and distinguish:
 
 - the page is readable but the feed or selector fetch failed;
 - the page is readable and shows no new posts;
