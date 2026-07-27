@@ -23,7 +23,7 @@ const usage = `Usage:
   feed-reader feeds import <file> [--project <name>] [--category <name>] [--config <file>] [--db <file>] [--json]
   feed-reader feeds list [--project <name>] [--db <file>] [--json]
   feed-reader feeds remove <source-id> [--project <name>] [--db <file>] [--json]
-  feed-reader sync [--project <name>] [--config <file>] [--db <file>] [--json] [--no-items]
+  feed-reader sync [--project <name>] [--source <id>] [--config <file>] [--db <file>] [--json] [--no-items]
   feed-reader items [--project <name>] [--source <id>] [--category <name>] [--since <duration>] [--config <file>] [--db <file>] [--json]
   feed-reader status [--project <name>] [--config <file>] [--db <file>] [--json]
 `;
@@ -207,8 +207,13 @@ export async function runCli(argv: string[], options: CliOptions = {}): Promise<
     try {
       if (command === "sync") {
         const config = await sourceConfig(values.project, values.config, database);
+        if (values.source !== undefined) {
+          config.sources = config.sources.filter((source) => source.id === values.source);
+        }
         if (config.sources.length === 0) {
-          throw new Error(`No sources configured for project ${config.project}`);
+          throw new Error(values.source === undefined
+            ? `No sources configured for project ${config.project}`
+            : `Source not found in project ${config.project}: ${values.source}`);
         }
         const result = await syncFeeds(config, database, {
           project: values.project,

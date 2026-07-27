@@ -29,69 +29,26 @@ test("chromeUserAgent covers supported desktop platforms", () => {
 function fakeChromium(mode: "success" | "unsupported" | "missing-button" | "missing-cookie") {
   return async () => ({
     launch: async () => {
-      let routeHandler: ((route: {
-        abort(): Promise<void>;
-        continue(): Promise<void>;
-        request(): { isNavigationRequest(): boolean };
-      }) => Promise<void>) | undefined;
-      let reloadRequest: (() => void) | undefined;
-      let continued = false;
-      let aborted = false;
-      const request = {
-        isNavigationRequest: () => true,
-        url: () => "https://example.com/forum.php?mod=rss&fid=81",
-      };
+      let clicked = false;
       const page = {
         click: async () => {},
         content: async () => mode === "unsupported" ? "<html/>" : "<script>waf_pow</script>",
-        goto: async () => {
-          await routeHandler?.({
-            abort: async () => { aborted = true; },
-            continue: async () => { continued = true; },
-            request: () => request,
-          });
-        },
+        goto: async () => {},
         locator: () => ({
-          click: async () => {
-            await routeHandler?.({
-              abort: async () => { aborted = true; },
-              continue: async () => { continued = true; },
-              request: () => ({ ...request, isNavigationRequest: () => false }),
-            });
-            await routeHandler?.({
-              abort: async () => { aborted = true; },
-              continue: async () => { continued = true; },
-              request: () => request,
-            });
-            reloadRequest?.();
-          },
+          click: async () => { clicked = true; },
           count: async () => mode === "missing-button" ? 0 : 1,
-        }),
-        route: async (_url: string, handler: typeof routeHandler) => { routeHandler = handler; },
-        waitForRequest: async (predicate: (candidate: typeof request) => boolean) => new Promise((resolve) => {
-          assert.equal(predicate({ ...request, isNavigationRequest: () => false }), false);
-          assert.equal(predicate({ ...request, url: () => "https://example.com/other" }), false);
-          reloadRequest = () => {
-            assert.equal(predicate(request), true);
-            resolve(request);
-          };
         }),
         waitForTimeout: async () => {},
       };
       const context = {
         close: async () => {},
-        cookies: async () => mode === "missing-cookie"
+        cookies: async () => !clicked || mode === "missing-cookie"
           ? []
           : [{ name: "waf_pow", value: "proof" }],
         newPage: async () => page,
       };
       return {
-        close: async () => {
-          assert.equal(continued, true);
-          if (mode !== "unsupported" && mode !== "missing-button") {
-            assert.equal(aborted, true);
-          }
-        },
+        close: async () => {},
         newContext: async ({ userAgent }: { userAgent: string }) => {
           assert.match(userAgent, /Chrome\/123/);
           return context;

@@ -47,14 +47,6 @@ export async function fetchWafProtectedText(
     const context = await browser.newContext({ userAgent });
     try {
       const page = await context.newPage();
-      let blockReload = false;
-      await page.route(target, async (route) => {
-        if (blockReload && route.request().isNavigationRequest()) {
-          await route.abort();
-        } else {
-          await route.continue();
-        }
-      });
       await page.goto(target, { timeout: timeoutMs, waitUntil: "domcontentloaded" });
       if (!(await page.content()).includes("waf_pow")) {
         throw new Error("Unsupported browser challenge");
@@ -66,15 +58,12 @@ export async function fetchWafProtectedText(
 
       // ponytail: known waf_pow flow only; add adapters when another real challenge requires one.
       await page.waitForTimeout(challengeDelayMs);
-      blockReload = true;
-      const reload = page.waitForRequest(
-        (request) => request.isNavigationRequest() && request.url() === target,
-        { timeout: timeoutMs },
-      );
-      await button.click({ timeout: timeoutMs });
-      await reload;
-
-      const cookies = await context.cookies(target);
+      await button.click({ timeout: timeoutMs, noWaitAfter: true });
+      let cookies = await context.cookies(target);
+      for (let elapsed = 0; !cookies.some((cookie) => cookie.name === "waf_pow") && elapsed < timeoutMs; elapsed += 100) {
+        await page.waitForTimeout(Math.min(100, timeoutMs - elapsed));
+        cookies = await context.cookies(target);
+      }
       if (!cookies.some((cookie) => cookie.name === "waf_pow")) {
         throw new Error("Browser challenge did not produce a WAF cookie");
       }

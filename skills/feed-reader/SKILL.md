@@ -56,6 +56,7 @@ feed-reader sync --project <name> --json --no-items
 ```
 
 Use `sync --config <feed-reader.json>` when the caller supplied a portable config that has not been registered.
+Add `--source <id>` when only one source should be synchronized.
 
 Prefer `--no-items` for agent syncs: progress is written to stderr, while stdout stays compact and machine-readable. Fetch content afterward with `items`.
 

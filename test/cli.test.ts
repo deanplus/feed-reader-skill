@@ -129,12 +129,18 @@ test("runCli registers, lists, syncs, and removes project sources", async () => 
   assert.equal(JSON.parse(pending.stdout).sources[0].status, "pending");
 
   const synced = capture();
-  assert.equal(await runCli(["sync", "--project", "registered", "--db", database, "--json"], {
+  assert.equal(await runCli(["sync", "--project", "registered", "--source", "feed", "--db", database, "--json"], {
     io: synced.io,
     fetcher: async () => new Response("<rss><channel><item><title>Old</title><link>https://example.com/old</link></item></channel></rss>"),
     now: () => new Date("2026-07-23T00:00:00.000Z"),
   }), 0);
   assert.equal(JSON.parse(synced.stdout).sources[0].baseline, true);
+
+  const unknownSource = capture();
+  assert.equal(await runCli(["sync", "--project", "registered", "--source", "missing", "--db", database], {
+    io: unknownSource.io,
+  }), 1);
+  assert.match(unknownSource.stderr, /Source not found in project registered: missing/);
 
   const removed = capture();
   assert.equal(await runCli(["feeds", "remove", "feed", "--project", "registered", "--db", database, "--json"], { io: removed.io }), 0);
@@ -151,6 +157,30 @@ test("runCli registers, lists, syncs, and removes project sources", async () => 
   const missing = capture();
   assert.equal(await runCli(["sync", "--project", "registered", "--db", database], { io: missing.io }), 1);
   assert.match(missing.stderr, /No sources configured/);
+});
+
+test("runCli syncs only the selected source", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "feed-reader-cli-source-"));
+  const config = join(directory, "feeds.json");
+  const database = join(directory, "state.sqlite");
+  await writeFile(config, JSON.stringify({
+    project: "selected",
+    sources: [
+      { id: "wanted", url: "https://example.com/wanted" },
+      { id: "other", url: "https://example.com/other" },
+    ],
+  }));
+
+  const output = capture();
+  assert.equal(await runCli(["sync", "--config", config, "--source", "wanted", "--db", database, "--json"], {
+    io: output.io,
+    fetcher: async (input) => {
+      assert.equal(String(input), "https://example.com/wanted");
+      return new Response("<rss><channel><title>Wanted</title></channel></rss>");
+    },
+  }), 0);
+  assert.deepEqual(JSON.parse(output.stdout).sources.map((source: { sourceId: string }) => source.sourceId), ["wanted"]);
+  assert.equal(output.stderr, "[1/1] Syncing wanted\n");
 });
 
 test("runCli registers OPML sources and reports registry errors", async () => {

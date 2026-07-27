@@ -120,11 +120,12 @@ feed-reader discover https://example.com/blog --json
 feed-reader feeds import subscriptions.opml --project daily-ai --json
 feed-reader feeds list --project daily-ai --json
 feed-reader sync --project daily-ai --json --no-items
+feed-reader sync --project daily-ai --source example --json --no-items
 feed-reader items --project daily-ai --category AI --since 24h --json
 feed-reader status --project daily-ai --json
 ```
 
-`sync` 开始处理每个来源时会把进度写入 stderr。JSON 输出可加 `--no-items`，只返回新增数量和逐源结果；需要内容时再调用 `items`。
+`sync` 开始处理每个来源时会把进度写入 stderr。使用 `--source <id>` 可只同步一个已注册来源。JSON 输出可加 `--no-items`，只返回新增数量和逐源结果；需要内容时再调用 `items`。
 
 `--project` 和 `--category` 都是可选参数：
 
