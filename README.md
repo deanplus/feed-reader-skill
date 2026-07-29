@@ -26,7 +26,7 @@ npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a codex -y
 npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a claude-code -y
 ```
 
-No separate CLI installation is required. When `feed-reader` is not on `PATH`, the Skill runs `npx --yes feed-reader-skill@latest` automatically. Use `--list` only to inspect the repository without installing anything.
+No separate CLI installation is required. The Skill prefers `feed-reader` on `PATH`, a built checkout, or a previously resolved npm cache entry. It uses `npx --yes feed-reader-skill@latest` only once as a bootstrap fallback and reuses the resolved executable for the rest of the task. A silent or failed `npx` bootstrap is an npm or network failure, not evidence that the CLI returned no feed updates. Use `--list` only to inspect the repository without installing anything.
 
 Claude Code users can alternatively use this repository as a plugin marketplace:
 
@@ -37,6 +37,8 @@ Claude Code users can alternatively use this repository as a plugin marketplace:
 ```
 
 ## Optional: install the CLI globally
+
+Recommended for scheduled or repeated runs because it avoids runtime npm registry resolution:
 
 ```bash
 npm install --global feed-reader-skill
@@ -109,7 +111,7 @@ Fetch new articles and show me the list.
 Summarize the useful AI articles from the last 24 hours.
 ```
 
-The repository includes [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md). Register that directory through the agent's normal Git repository or local Skill installation flow. The Skill uses an installed `feed-reader` command, a built repository checkout, or `npx feed-reader-skill@latest`.
+The repository includes [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md). Register that directory through the agent's normal Git repository or local Skill installation flow. The Skill uses an installed `feed-reader` command, a built repository checkout, or a validated npm cache entry before falling back to a one-time `npx feed-reader-skill@latest` bootstrap.
 
 Invoke the skill explicitly with `$feed-reader` or use matching natural language. It does not define a portable custom slash command; the agent translates the request into CLI calls.
 

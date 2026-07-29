@@ -26,7 +26,7 @@ npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a codex -y
 npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a claude-code -y
 ```
 
-不需要另行安装 CLI。`PATH` 中没有 `feed-reader` 时，Skill 会自动运行 `npx --yes feed-reader-skill@latest`。只有想查看仓库内容但不安装时，才使用 `--list`。
+不需要另行安装 CLI。Skill 会依次优先使用 `PATH` 中的 `feed-reader`、已构建的仓库版本或之前解析成功的 npm 缓存；只有这些入口都不可用时，才用 `npx --yes feed-reader-skill@latest` 引导一次，并在本轮任务中复用解析后的可执行文件。`npx` 无回显或执行失败属于 npm 引导或网络异常，不能据此判断 CLI 没有 Feed 更新。只有想查看仓库内容但不安装时，才使用 `--list`。
 
 Claude Code 用户也可以把本仓库作为插件 marketplace 安装：
 
@@ -37,6 +37,8 @@ Claude Code 用户也可以把本仓库作为插件 marketplace 安装：
 ```
 
 ## 可选：全局安装 CLI
+
+定时或重复任务建议使用这种方式，避免运行时解析 npm registry：
 
 ```bash
 npm install --global feed-reader-skill
@@ -109,7 +111,7 @@ pnpm test:coverage
 总结最近 24 小时有用的 AI 文章。
 ```
 
-仓库包含 [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md)。通过 Agent 常规的 Git 仓库或本地 Skill 安装方式注册该目录。Skill 会使用已安装的 `feed-reader` 命令、已构建的仓库，或 `npx feed-reader-skill@latest`。
+仓库包含 [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md)。通过 Agent 常规的 Git 仓库或本地 Skill 安装方式注册该目录。Skill 会优先使用已安装的 `feed-reader` 命令、已构建的仓库或验证可用的 npm 缓存，最后才用一次性的 `npx feed-reader-skill@latest` 完成引导。
 
 可以显式使用 `$feed-reader`，也可以用匹配的自然语言触发。Skill 不定义无法跨平台复用的自定义 slash command，而是由 Agent 将请求转换为 CLI 调用。
 
