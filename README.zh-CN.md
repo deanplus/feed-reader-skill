@@ -35,6 +35,23 @@ feed-reader --help
 
 偶尔使用时仍可不单独安装 CLI。Skill 会优先使用 `PATH` 中的 `feed-reader` 或已构建的仓库版本，最后回退到 `npx --yes feed-reader-skill@latest`，不会直接执行 npm 临时 `_npx` 缓存中的文件。`npx` 无回显或执行失败属于 npm 引导或网络异常，不能据此判断 CLI 没有 Feed 更新；若持续失败，请安装上面的全局 CLI。只有想查看仓库内容但不安装时，才使用 `--list`。
 
+## 更新
+
+更新 Skill 时，同时检查可选的全局 CLI 是否过期：
+
+```bash
+npx skills update feed-reader
+npm list --global feed-reader-skill --depth=0 >/dev/null 2>&1 && npm outdated --global feed-reader-skill
+```
+
+如果 `npm outdated` 列出 `feed-reader-skill`，再单独更新：
+
+```bash
+npm install --global feed-reader-skill@latest
+```
+
+没有输出表示未安装全局 CLI 或已经是最新版。Skill 与 CLI 分开发布，Agent 无法感知更早会话中由用户手动完成的 Skill 更新；如果是 Agent 自己执行 Skill 更新，应紧接着完成 CLI 检查。日常抓取不会访问 registry 检查版本。
+
 Claude Code 用户也可以把本仓库作为插件 marketplace 安装：
 
 ```text

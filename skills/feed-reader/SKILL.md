@@ -18,6 +18,8 @@ Never locate or execute files inside npm's internal `_npx` cache; those paths ar
 
 If the `npx` command produces no output within 30 seconds, stop it and report an npm bootstrap or network failure. Do not classify missing `npx` output as a CLI failure or as “no feed updates.” Recommend `npm install --global feed-reader-skill@latest` for a stable `feed-reader` command, especially for scheduled or repeated runs.
 
+If the current task explicitly says the user just updated this Skill, or the agent runs `npx skills update feed-reader` itself, immediately check the optional global CLI with `npm list --global feed-reader-skill --depth=0` and, only when installed, `npm outdated --global feed-reader-skill`. If it is outdated, recommend `npm install --global feed-reader-skill@latest`; do not install it without authorization. Do not infer an update from an earlier session or perform this registry check during ordinary feed-reader tasks.
+
 Prefer a registered project when one is established. Use an explicit config for portable file-based runs.
 
 Treat project and category as optional:

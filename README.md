@@ -35,6 +35,23 @@ feed-reader --help
 
 A separate CLI installation remains optional for occasional use. The Skill prefers `feed-reader` on `PATH` or a built checkout, then falls back to `npx --yes feed-reader-skill@latest`. It never executes files inside npm's temporary `_npx` cache. A silent or failed `npx` command is an npm bootstrap or network failure, not evidence that the CLI returned no feed updates; install the global CLI above if it persists. Use `--list` only to inspect the repository without installing anything.
 
+## Update
+
+Update the Skill and check the optional global CLI together:
+
+```bash
+npx skills update feed-reader
+npm list --global feed-reader-skill --depth=0 >/dev/null 2>&1 && npm outdated --global feed-reader-skill
+```
+
+If `npm outdated` lists `feed-reader-skill`, update it separately:
+
+```bash
+npm install --global feed-reader-skill@latest
+```
+
+No output means the global CLI is absent or current. The Skill and CLI are distributed separately, and agents cannot detect a manual Skill update from an earlier session. When an agent runs the Skill update itself, it should perform the CLI check immediately afterward; ordinary feed-reader runs do not check the registry.
+
 Claude Code users can alternatively use this repository as a plugin marketplace:
 
 ```text
