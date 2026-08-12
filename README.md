@@ -29,7 +29,7 @@ npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a claude-code 
 For scheduled or repeated use, install the CLI globally after adding the Skill. This gives agents a stable command instead of an npm cache path:
 
 ```bash
-pnpm add --global feed-reader-skill@latest
+npm install --global feed-reader-skill@latest
 feed-reader --help
 ```
 

@@ -29,7 +29,7 @@ npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a claude-code 
 如果会定时或频繁使用，添加 Skill 后建议全局安装 CLI，让 Agent 使用稳定命令而不是 npm 缓存路径：
 
 ```bash
-pnpm add --global feed-reader-skill@latest
+npm install --global feed-reader-skill@latest
 feed-reader --help
 ```
 

@@ -16,7 +16,7 @@ Use the repository CLI for deterministic discovery, fetching, recognized WAF cha
 Do not recreate the CLI logic inside the skill or install repository dependencies without authorization.
 Never locate or execute files inside npm's internal `_npx` cache; those paths are temporary and may trigger repeated permission prompts.
 
-If the `npx` command produces no output within 30 seconds, stop it and report an npm bootstrap or network failure. Do not classify missing `npx` output as a CLI failure or as “no feed updates.” Recommend `pnpm add --global feed-reader-skill@latest` for a stable `feed-reader` command, especially for scheduled or repeated runs.
+If the `npx` command produces no output within 30 seconds, stop it and report an npm bootstrap or network failure. Do not classify missing `npx` output as a CLI failure or as “no feed updates.” Recommend `npm install --global feed-reader-skill@latest` for a stable `feed-reader` command, especially for scheduled or repeated runs.
 
 Prefer a registered project when one is established. Use an explicit config for portable file-based runs.
 
