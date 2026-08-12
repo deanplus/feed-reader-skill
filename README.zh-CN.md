@@ -45,11 +45,11 @@ Claude Code 用户也可以把本仓库作为插件 marketplace 安装：
 
 ## 开发快速开始
 
-需要 Node.js 20.18.1 或更高版本，以及 pnpm。
+需要 Node.js 20.18.1 或更高版本。
 
 ```bash
-pnpm install
-pnpm build
+npm install
+npm run build
 ```
 
 创建 `feed-reader.json`，并将它注册到一个项目：
@@ -79,13 +79,13 @@ node bin/feed-reader.js status --project example --db ./feed-reader.sqlite --jso
 在所有支持的 Node.js 版本上运行完整测试：
 
 ```bash
-pnpm test
+npm test
 ```
 
 在 Node.js 22 或更高版本上强制检查 100% 行、分支和函数覆盖率：
 
 ```bash
-pnpm test:coverage
+npm run test:coverage
 ```
 
 ## 目标

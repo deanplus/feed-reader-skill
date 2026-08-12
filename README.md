@@ -45,11 +45,11 @@ Claude Code users can alternatively use this repository as a plugin marketplace:
 
 ## Development quick start
 
-Requires Node.js 20.18.1 or newer and pnpm.
+Requires Node.js 20.18.1 or newer.
 
 ```bash
-pnpm install
-pnpm build
+npm install
+npm run build
 ```
 
 Create `feed-reader.json` and register it under a project:
@@ -79,13 +79,13 @@ node bin/feed-reader.js status --project example --db ./feed-reader.sqlite --jso
 Run the complete test suite on any supported Node.js version:
 
 ```bash
-pnpm test
+npm test
 ```
 
 On Node.js 22 or newer, enforce 100% line, branch, and function coverage:
 
 ```bash
-pnpm test:coverage
+npm run test:coverage
 ```
 
 ## Goals
