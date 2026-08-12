@@ -11,12 +11,12 @@ Use the repository CLI for deterministic discovery, fetching, recognized WAF cha
 
 1. Use `feed-reader` when it is available on `PATH`.
 2. In a repository checkout with built output and installed dependencies, use `node <repository-root>/bin/feed-reader.js`.
-3. If npm already has an `_npx` copy of `feed-reader-skill`, find it under `<npm-cache>/_npx/*/node_modules/feed-reader-skill`, where `<npm-cache>` comes from `npm config get cache`. Prefer the newest cached package version and run its `bin/feed-reader.js` with Node after confirming that `--help` succeeds.
-4. Otherwise use `npx --yes feed-reader-skill@latest` once to bootstrap the CLI. Reuse the resolved executable for every later command in the task instead of invoking `npx` again.
+3. Otherwise replace `feed-reader` in the commands below with `npx --yes feed-reader-skill@latest`.
 
 Do not recreate the CLI logic inside the skill or install repository dependencies without authorization.
+Never locate or execute files inside npm's internal `_npx` cache; those paths are temporary and may trigger repeated permission prompts.
 
-If the `npx` bootstrap produces no output within 30 seconds, stop it and report an npm bootstrap or network failure. Do not classify missing `npx` output as a CLI failure or as “no feed updates.” A pinned package version can make runs reproducible, but it does not remove npm's registry dependency when the package is not already installed.
+If the `npx` command produces no output within 30 seconds, stop it and report an npm bootstrap or network failure. Do not classify missing `npx` output as a CLI failure or as “no feed updates.” Recommend `pnpm add --global feed-reader-skill@latest` for a stable `feed-reader` command, especially for scheduled or repeated runs.
 
 Prefer a registered project when one is established. Use an explicit config for portable file-based runs.
 

@@ -26,7 +26,14 @@ npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a codex -y
 npx skills add deanplus/feed-reader-skill --skill feed-reader -g -a claude-code -y
 ```
 
-No separate CLI installation is required. The Skill prefers `feed-reader` on `PATH`, a built checkout, or a previously resolved npm cache entry. It uses `npx --yes feed-reader-skill@latest` only once as a bootstrap fallback and reuses the resolved executable for the rest of the task. A silent or failed `npx` bootstrap is an npm or network failure, not evidence that the CLI returned no feed updates. Use `--list` only to inspect the repository without installing anything.
+For scheduled or repeated use, install the CLI globally after adding the Skill. This gives agents a stable command instead of an npm cache path:
+
+```bash
+pnpm add --global feed-reader-skill@latest
+feed-reader --help
+```
+
+A separate CLI installation remains optional for occasional use. The Skill prefers `feed-reader` on `PATH` or a built checkout, then falls back to `npx --yes feed-reader-skill@latest`. It never executes files inside npm's temporary `_npx` cache. A silent or failed `npx` command is an npm bootstrap or network failure, not evidence that the CLI returned no feed updates; install the global CLI above if it persists. Use `--list` only to inspect the repository without installing anything.
 
 Claude Code users can alternatively use this repository as a plugin marketplace:
 
@@ -34,15 +41,6 @@ Claude Code users can alternatively use this repository as a plugin marketplace:
 /plugin marketplace add deanplus/feed-reader-skill
 /plugin install feed-reader@feed-reader-skills
 /reload-plugins
-```
-
-## Optional: install the CLI globally
-
-Recommended for scheduled or repeated runs because it avoids runtime npm registry resolution:
-
-```bash
-npm install --global feed-reader-skill
-feed-reader --help
 ```
 
 ## Development quick start
@@ -111,7 +109,7 @@ Fetch new articles and show me the list.
 Summarize the useful AI articles from the last 24 hours.
 ```
 
-The repository includes [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md). Register that directory through the agent's normal Git repository or local Skill installation flow. The Skill uses an installed `feed-reader` command, a built repository checkout, or a validated npm cache entry before falling back to a one-time `npx feed-reader-skill@latest` bootstrap.
+The repository includes [skills/feed-reader/SKILL.md](skills/feed-reader/SKILL.md). Register that directory through the agent's normal Git repository or local Skill installation flow. The Skill uses an installed `feed-reader` command or a built repository checkout before falling back to `npx --yes feed-reader-skill@latest`; it never executes files inside npm's temporary `_npx` cache.
 
 Invoke the skill explicitly with `$feed-reader` or use matching natural language. It does not define a portable custom slash command; the agent translates the request into CLI calls.
 
