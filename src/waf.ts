@@ -1,4 +1,6 @@
 import type { BrowserType } from "playwright-core";
+import { loadChromium } from "./chromium.ts";
+import { decodeResponseBody } from "./encoding.ts";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
@@ -24,13 +26,7 @@ export function chromeUserAgent(version: string, platform?: string): string {
   const system = resolvedPlatform === "win32"
     ? "Windows NT 10.0; Win64; x64"
     : resolvedPlatform === "darwin" ? "Macintosh; Intel Mac OS X 10_15_7" : "X11; Linux x86_64";
-  /* node:coverage ignore next */
   return `Mozilla/5.0 (${system}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`;
-}
-
-async function loadChromium(): Promise<BrowserType> {
-  /* node:coverage ignore next */
-  return (await import("playwright-core")).chromium;
 }
 
 export async function fetchWafProtectedText(
@@ -82,7 +78,7 @@ export async function fetchWafProtectedText(
       if (!response.ok) {
         throw new Error(`HTTP ${response.status} after browser challenge`);
       }
-      return response.text();
+      return decodeResponseBody(response);
     } finally {
       await context.close();
     }

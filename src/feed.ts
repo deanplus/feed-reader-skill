@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { load } from "cheerio";
 import { XMLParser } from "fast-xml-parser";
+import { decodeResponseBody } from "./encoding.ts";
 import type { DiscoveredFeed, NormalizedItem, SourceConfig } from "./types.ts";
 import { fetchWafProtectedText, normalizeWafUrl } from "./waf.ts";
 
@@ -231,7 +232,7 @@ async function requestText(url: string, accept: string, fetcher: Fetcher, timeou
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
-  return response.text();
+  return decodeResponseBody(response);
 }
 
 async function requestTextWithWaf(

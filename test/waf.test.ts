@@ -69,11 +69,13 @@ test("fetchWafProtectedText solves the recognized challenge with an in-memory co
       chromium: fakeChromium("success"),
       fetcher: async (input, init) => {
         calls.push({ input: String(input), init });
-        return new Response("<rss/>");
+        return new Response(Uint8Array.from([0x3C, 0xCF, 0xE3, 0xC9, 0xBD, 0xCD, 0xF8, 0x2F, 0x3E]), {
+          headers: { "content-type": "application/rss+xml; charset=gb2312" },
+        });
       },
     },
   );
-  assert.equal(text, "<rss/>");
+  assert.equal(text, "<香山网/>");
   assert.equal(calls[0]?.input, "https://example.com/forum.php?mod=rss&fid=81");
   assert.equal(new Headers(calls[0]?.init?.headers).get("cookie"), "waf_pow=proof");
   assert.ok(calls[0]?.init?.signal instanceof AbortSignal);

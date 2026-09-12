@@ -31,6 +31,7 @@ The skill must call the CLI rather than duplicate its implementation. It does no
 - Allow an explicit history limit when creating the baseline.
 - Never disable a source from a single transient failure.
 - Use an isolated system Chrome session only for recognized `waf_pow` challenges, keep its cookies in memory, and fail closed for unsupported CAPTCHA or login flows.
+- Decode response bodies with the charset declared by the HTTP header, then by the XML prologue or HTML meta tag, and fall back to UTF-8 so legacy GBK sources stay readable.
 
 The implemented core loop baselines every item returned by the feed. An explicit first-run history limit remains planned.
 

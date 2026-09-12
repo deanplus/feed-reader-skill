@@ -326,3 +326,16 @@ test("fetchFeed reads explicit web sources and auto-falls back to selectors", as
   });
   assert.equal(automatic[0]?.title, "Listing item");
 });
+
+test("fetchFeed decodes a GBK feed declared only in its XML prologue", async () => {
+  const prologue = '<?xml version="1.0" encoding="gbk"?><rss><channel><item><title>';
+  const rest = "</title><link>https://example.com/gbk</link></item></channel></rss>";
+  const items = await fetchFeed(source, fetchedAt, {
+    fetcher: async () => new Response(Uint8Array.from([
+      ...new TextEncoder().encode(prologue),
+      0xCF, 0xE3, 0xC9, 0xBD, 0xCD, 0xF8,
+      ...new TextEncoder().encode(rest),
+    ]), { headers: { "content-type": "application/xml" } }),
+  });
+  assert.equal(items[0]?.title, "香山网");
+});
