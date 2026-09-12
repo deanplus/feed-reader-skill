@@ -12,3 +12,5 @@ coverage/
 *.sqlite-wal
 
 .DS_Store
+docs/rfcs/
+AGENTS.md
