@@ -1,6 +1,6 @@
 {
   "name": "feed-reader-skill",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "description": "Read RSS, Atom, and configured web feeds through a TypeScript CLI and agent skill.",
   "type": "module",
   "repository": {
